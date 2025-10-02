@@ -1,0 +1,73 @@
+node_modules
+.next
+.git
+.gitignore
+*.md
+!README.md
+
+# Development files
+.vscode
+.idea
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Testing
+coverage
+.nyc_output
+playwright-report
+test-results
+screenshots
+
+# Environment
+.env*.local
+.env
+
+# Build outputs
+dist
+build
+out
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Development configs
+docker-compose.dev.yml
+.dockerignore
+Dockerfile
+
+# Claude Code & Development Tools
+.claude
+.specify
+.feature-tracking
+.playwright-mcp
+docs
+specs
+
+# Development documentation
+CLAUDE.md
+CLERK_RLS_SETUP.md
+PRODUCTION_DEPLOYMENT.md
+PROJECT_SPECIFICATION.md
+SUPABASE_AUTH_MIGRATION.md
+TEAM_SETUP.md
+TECHNICAL_PLAN.md
+
+# Development scripts
+quick-start.bat
+quick-start.sh
+scripts/specify.*
+specify_wrapper.py
+startup.local
+
+# SQL files
+*.sql
+!prisma/migrations/**/*.sql
+
+# SSH Keys
+*.pem
+*.key
+*.pub
+shipsmind-key*

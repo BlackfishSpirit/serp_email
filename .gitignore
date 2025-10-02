@@ -138,3 +138,57 @@ deployment*.tar.gz
 # User workflow progress (local only)
 .shipsmind/
 startup.local
+
+# SSH Keys (NEVER commit these!)
+*.pem
+*.key
+*.pub
+id_rsa*
+id_ed25519*
+shipsmind-key*
+
+# Development and Testing Files
+test-results/
+playwright-report/
+screenshots/
+.playwright-mcp/
+test-*.sql
+debug-*.sql
+diagnose-*.sql
+fix-*.sql
+
+# Claude Code Configuration (local only)
+.claude/
+.specify/
+.feature-tracking/
+
+# Development Documentation
+docs/
+specs/
+integration-notes.md
+feature_tracking_update.md
+linear_manual_setup.md
+specify_workflow_guide.md
+test-integration.md
+CLAUDE.md
+CLERK_RLS_SETUP.md
+PRODUCTION_DEPLOYMENT.md
+PROJECT_SPECIFICATION.md
+SUPABASE_AUTH_MIGRATION.md
+TEAM_SETUP.md
+TECHNICAL_PLAN.md
+specifyinstall.md
+
+# Development Scripts and Configs
+quick-start.bat
+quick-start.sh
+scripts/specify.*
+specify_wrapper.py
+docker-compose.dev.yml
+
+# SQL Files (use proper migrations)
+*.sql
+!prisma/migrations/**/*.sql
+
+# Development workflow files
+data/workflow-checklist.json
