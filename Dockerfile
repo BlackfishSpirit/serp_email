@@ -50,11 +50,11 @@ ENV NODE_ENV=production
 
 # Copy necessary files from builder
 COPY --from=builder /app/next.config.js ./
-COPY --from=builder /app/public ./public
 COPY --from=builder /app/.next/standalone ./
 COPY --from=builder /app/.next/static ./.next/static
 COPY --from=builder /app/package.json ./
-COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
+# Copy Prisma generated files (pnpm stores them in a different path)
+COPY --from=builder /app/node_modules/.pnpm ./node_modules/.pnpm
 COPY --from=builder /app/prisma ./prisma
 
 # Expose port
