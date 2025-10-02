@@ -9,14 +9,14 @@ WORKDIR /app
 # Copy package files
 COPY package.json pnpm-lock.yaml ./
 
-# Install dependencies
+# Copy Prisma schema first (needed for postinstall hook)
+COPY prisma ./prisma
+
+# Install dependencies (will run prisma generate in postinstall)
 RUN pnpm install --frozen-lockfile
 
 # Copy source code
 COPY . .
-
-# Generate Prisma client
-RUN pnpm db:generate
 
 # Build the application
 RUN pnpm build
