@@ -115,9 +115,61 @@ export default function LeadsPage() {
         return;
       }
 
-      // Get excluded lead IDs if filtering out emailed leads
+      // Step 1: Get ALL user_leads that match our filters (no pagination yet)
+      let allUserLeadsQuery = supabase
+        .from('user_leads')
+        .select('id, lead_id, excluded')
+        .eq('user_id', userAccountId);
+
+      // Filter by excluded status
+      if (showExcludedLeads) {
+        // Show only excluded leads, sorted by most recent exclusion
+        allUserLeadsQuery = allUserLeadsQuery.not('excluded', 'is', null).order('excluded', { ascending: false });
+      } else {
+        // Show only non-excluded leads, sorted by user_leads.id descending (newest first)
+        allUserLeadsQuery = allUserLeadsQuery.is('excluded', null).order('id', { ascending: false });
+      }
+
+      const { data: allUserLeadsData, error: allUserLeadsError } = await allUserLeadsQuery;
+
+      if (allUserLeadsError) {
+        console.error('Error loading user_leads:', allUserLeadsError);
+        setError(`Failed to load leads: ${allUserLeadsError.message}`);
+        return;
+      }
+
+      if (!allUserLeadsData || allUserLeadsData.length === 0) {
+        setTotalRecords(0);
+        setTotalPages(0);
+        setLeads([]);
+        return;
+      }
+
+      // Step 2: Get lead IDs and fetch corresponding serp_leads_v2 data to check email status
+      const allLeadIds = allUserLeadsData.map(ul => ul.lead_id);
+
+      // Fetch serp_leads_v2 data for email filtering
+      const { data: allLeadsData, error: allLeadsError } = await supabase
+        .from('serp_leads_v2')
+        .select('id, email')
+        .in('id', allLeadIds);
+
+      if (allLeadsError) {
+        console.error('Error loading leads for filtering:', allLeadsError);
+        setError(`Failed to load leads: ${allLeadsError.message}`);
+        return;
+      }
+
+      // Create a Set of lead IDs that have valid emails
+      const leadsWithEmailSet = new Set(
+        (allLeadsData || [])
+          .filter(lead => lead.email && lead.email !== 'EmailNotFound')
+          .map(lead => lead.id)
+      );
+
+      // Step 3: Get emailed lead IDs if filtering them out
       let emailedLeadIds: string[] = [];
-      if (!showEmailedLeads && userAccountId) {
+      if (!showEmailedLeads && !showExcludedLeads && userAccountId) {
         const { data: draftIds } = await supabase
           .from('email_drafts')
           .select('lead_id')
@@ -126,57 +178,43 @@ export default function LeadsPage() {
         emailedLeadIds = (draftIds || []).map(d => d.lead_id).filter(id => id);
       }
 
-      // First, get user_leads with filtering
-      let userLeadsQuery = supabase
-        .from('user_leads')
-        .select('lead_id, excluded', { count: 'exact' })
-        .eq('user_id', userAccountId);
+      // Step 4: Apply all filters to get final filtered list
+      let filteredUserLeads = allUserLeadsData.filter(ul => {
+        // Filter out emailed leads if needed
+        if (!showExcludedLeads && !showEmailedLeads && emailedLeadIds.includes(ul.lead_id)) {
+          return false;
+        }
 
-      // Filter by excluded status
-      if (showExcludedLeads) {
-        // Show only excluded leads, sorted by most recent exclusion
-        userLeadsQuery = userLeadsQuery.not('excluded', 'is', null).order('excluded', { ascending: false });
-      } else {
-        // Show only non-excluded leads
-        userLeadsQuery = userLeadsQuery.is('excluded', null);
-      }
+        // Filter out leads without emails if needed
+        if (!showExcludedLeads && !showWithoutEmails && !leadsWithEmailSet.has(ul.lead_id)) {
+          return false;
+        }
 
-      const { data: userLeadsData, error: userLeadsError, count } = await userLeadsQuery;
+        return true;
+      });
 
-      if (userLeadsError) {
-        console.error('Error loading user_leads:', userLeadsError);
-        setError(`Failed to load leads: ${userLeadsError.message}`);
-        return;
-      }
+      // Step 5: Apply pagination to filtered results
+      const from = (currentPage - 1) * recordsPerPage;
+      const to = from + recordsPerPage;
+      const paginatedUserLeads = filteredUserLeads.slice(from, to);
 
-      if (!userLeadsData || userLeadsData.length === 0) {
-        setTotalRecords(0);
-        setTotalPages(0);
+      const totalCount = filteredUserLeads.length;
+      setTotalRecords(totalCount);
+      setTotalPages(Math.ceil(totalCount / recordsPerPage));
+
+      if (paginatedUserLeads.length === 0) {
         setLeads([]);
         return;
       }
 
-      // Apply pagination to lead IDs
-      const from = (currentPage - 1) * recordsPerPage;
-      const to = from + recordsPerPage - 1;
-      const paginatedUserLeads = userLeadsData.slice(from, to + 1);
-      const leadIds = paginatedUserLeads.map(ul => ul.lead_id);
-
-      // Build a map of lead_id to excluded timestamp
+      // Step 6: Fetch full lead data for paginated results
+      const paginatedLeadIds = paginatedUserLeads.map(ul => ul.lead_id);
       const excludedMap = new Map(paginatedUserLeads.map(ul => [ul.lead_id, ul.excluded]));
 
-      // Fetch serp_leads_v2 data for these lead IDs
-      let leadsQuery = supabase
+      const { data: leadsData, error: leadsError } = await supabase
         .from('serp_leads_v2')
         .select('id, title, address, phone, url, email, facebook_url, instagram_url, categories')
-        .in('id', leadIds);
-
-      // Apply email filter for non-excluded view
-      if (!showExcludedLeads && !showWithoutEmails) {
-        leadsQuery = leadsQuery.not('email', 'is', null).neq('email', 'EmailNotFound');
-      }
-
-      const { data: leadsData, error: leadsError } = await leadsQuery;
+        .in('id', paginatedLeadIds);
 
       if (leadsError) {
         console.error('Error loading leads:', leadsError);
@@ -184,22 +222,13 @@ export default function LeadsPage() {
         return;
       }
 
-      setTotalRecords(count || 0);
-      setTotalPages(Math.ceil((count || 0) / recordsPerPage));
-
       // Merge the data and add excluded timestamp
       const mergedLeads = (leadsData || []).map(lead => ({
         ...lead,
         excluded: excludedMap.get(lead.id!)
       }));
 
-      // Filter out emailed leads if needed (for non-excluded view)
-      let finalLeads = mergedLeads;
-      if (!showExcludedLeads && emailedLeadIds.length > 0) {
-        finalLeads = mergedLeads.filter(lead => !emailedLeadIds.includes(lead.id!));
-      }
-
-      setLeads(finalLeads);
+      setLeads(mergedLeads);
     } catch (error) {
       console.error('Error loading leads:', error);
       setError('Failed to load leads. Please try again.');
@@ -364,9 +393,18 @@ export default function LeadsPage() {
             .split(',')
             .filter(c => c.trim());
 
-          // Merge and deduplicate
-          const allCategoriesSet = new Set([...existingCategories, ...categoriesToAdd]);
-          const newSerpExcCat = Array.from(allCategoriesSet).sort().join(',');
+          // Create a Set from existing categories to check for duplicates
+          const existingSet = new Set(existingCategories);
+
+          // Add only new categories to the end
+          const newCategories = categoriesToAdd.filter(cat => !existingSet.has(cat));
+
+          // Append new categories to the end of existing ones
+          const allCategories = existingCategories.length > 0
+            ? [...existingCategories, ...newCategories]
+            : newCategories;
+
+          const newSerpExcCat = allCategories.join(',');
 
           // Update user_accounts
           const { error: updateCatError } = await supabase
@@ -552,8 +590,8 @@ export default function LeadsPage() {
           </div>
         )}
 
-        <div className="mb-4 flex items-center justify-between">
-          <div className="flex items-center gap-4">
+        <div className="mb-4 flex items-start justify-between gap-4">
+          <div className="flex flex-col gap-2">
             {!showExcludedLeads && (
               <>
                 <label className="flex items-center gap-2">
