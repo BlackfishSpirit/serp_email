@@ -7,6 +7,7 @@ import { getAuthenticatedClient } from "@/lib/supabase/client";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 interface SerpLead {
   id?: string;
@@ -37,6 +38,14 @@ export default function LeadsPage() {
   const [totalPages, setTotalPages] = useState(0);
   const [selectedLeads, setSelectedLeads] = useState<Set<string>>(new Set());
 
+  // Exclusion feature state
+  const [showExcludedLeads, setShowExcludedLeads] = useState(false);
+  const [excludeDialogOpen, setExcludeDialogOpen] = useState(false);
+  const [availableCategories, setAvailableCategories] = useState<string[]>([]);
+  const [selectedCategories, setSelectedCategories] = useState<Set<string>>(new Set());
+  const [customCategory, setCustomCategory] = useState("");
+  const [customCategoryError, setCustomCategoryError] = useState("");
+
   useEffect(() => {
     if (isLoaded && !isSignedIn) {
       window.location.href = "/sign-in";
@@ -48,9 +57,10 @@ export default function LeadsPage() {
   useEffect(() => {
     if (isSignedIn && userAccountId !== null) {
       setCurrentPage(1);
+      setSelectedLeads(new Set()); // Clear selections when switching views
       loadLeads();
     }
-  }, [isSignedIn, recordsPerPage, userAccountId, showWithoutEmails, showEmailedLeads]);
+  }, [isSignedIn, recordsPerPage, userAccountId, showWithoutEmails, showEmailedLeads, showExcludedLeads]);
 
   useEffect(() => {
     if (isSignedIn && userAccountId !== null) {
@@ -100,49 +110,96 @@ export default function LeadsPage() {
       }
       const supabase = getAuthenticatedClient(token);
 
+      if (!userAccountId) {
+        setIsLoading(false);
+        return;
+      }
+
       // Get excluded lead IDs if filtering out emailed leads
-      let excludedLeadIds: string[] = [];
+      let emailedLeadIds: string[] = [];
       if (!showEmailedLeads && userAccountId) {
         const { data: draftIds } = await supabase
           .from('email_drafts')
           .select('lead_id')
           .eq('user_id', userAccountId);
 
-        excludedLeadIds = (draftIds || []).map(d => d.lead_id).filter(id => id);
+        emailedLeadIds = (draftIds || []).map(d => d.lead_id).filter(id => id);
       }
 
-      // Query serp_leads_v2 directly - RLS policy should filter to user's leads
+      // First, get user_leads with filtering
+      let userLeadsQuery = supabase
+        .from('user_leads')
+        .select('lead_id, excluded', { count: 'exact' })
+        .eq('user_id', userAccountId);
+
+      // Filter by excluded status
+      if (showExcludedLeads) {
+        // Show only excluded leads, sorted by most recent exclusion
+        userLeadsQuery = userLeadsQuery.not('excluded', 'is', null).order('excluded', { ascending: false });
+      } else {
+        // Show only non-excluded leads
+        userLeadsQuery = userLeadsQuery.is('excluded', null);
+      }
+
+      const { data: userLeadsData, error: userLeadsError, count } = await userLeadsQuery;
+
+      if (userLeadsError) {
+        console.error('Error loading user_leads:', userLeadsError);
+        setError(`Failed to load leads: ${userLeadsError.message}`);
+        return;
+      }
+
+      if (!userLeadsData || userLeadsData.length === 0) {
+        setTotalRecords(0);
+        setTotalPages(0);
+        setLeads([]);
+        return;
+      }
+
+      // Apply pagination to lead IDs
       const from = (currentPage - 1) * recordsPerPage;
       const to = from + recordsPerPage - 1;
+      const paginatedUserLeads = userLeadsData.slice(from, to + 1);
+      const leadIds = paginatedUserLeads.map(ul => ul.lead_id);
 
-      let query = supabase
+      // Build a map of lead_id to excluded timestamp
+      const excludedMap = new Map(paginatedUserLeads.map(ul => [ul.lead_id, ul.excluded]));
+
+      // Fetch serp_leads_v2 data for these lead IDs
+      let leadsQuery = supabase
         .from('serp_leads_v2')
-        .select('id, title, address, phone, url, email, facebook_url, instagram_url, categories', { count: 'exact' });
+        .select('id, title, address, phone, url, email, facebook_url, instagram_url, categories')
+        .in('id', leadIds);
 
-      // Apply email filter
-      if (!showWithoutEmails) {
-        query = query.not('email', 'is', null).neq('email', 'EmailNotFound');
+      // Apply email filter for non-excluded view
+      if (!showExcludedLeads && !showWithoutEmails) {
+        leadsQuery = leadsQuery.not('email', 'is', null).neq('email', 'EmailNotFound');
       }
 
-      // Apply excluded leads filter
-      if (excludedLeadIds.length > 0) {
-        query = query.not('id', 'in', `(${excludedLeadIds.join(',')})`);
-      }
+      const { data: leadsData, error: leadsError } = await leadsQuery;
 
-      const { data, error: fetchError, count } = await query
-        .range(from, to)
-        .order('id');
-
-      if (fetchError) {
-        console.error('Error loading leads:', fetchError);
-        setError(`Failed to load leads: ${fetchError.message}`);
+      if (leadsError) {
+        console.error('Error loading leads:', leadsError);
+        setError(`Failed to load leads: ${leadsError.message}`);
         return;
       }
 
       setTotalRecords(count || 0);
       setTotalPages(Math.ceil((count || 0) / recordsPerPage));
 
-      setLeads(data || []);
+      // Merge the data and add excluded timestamp
+      const mergedLeads = (leadsData || []).map(lead => ({
+        ...lead,
+        excluded: excludedMap.get(lead.id!)
+      }));
+
+      // Filter out emailed leads if needed (for non-excluded view)
+      let finalLeads = mergedLeads;
+      if (!showExcludedLeads && emailedLeadIds.length > 0) {
+        finalLeads = mergedLeads.filter(lead => !emailedLeadIds.includes(lead.id!));
+      }
+
+      setLeads(finalLeads);
     } catch (error) {
       console.error('Error loading leads:', error);
       setError('Failed to load leads. Please try again.');
@@ -167,6 +224,203 @@ export default function LeadsPage() {
     } else {
       setSelectedLeads(new Set(leads.map(lead => lead.id!).filter(id => id)));
     }
+  };
+
+  const handleRemoveLeads = () => {
+    if (selectedLeads.size === 0) {
+      return;
+    }
+
+    // Extract unique categories from selected leads
+    const allCategories = new Set<string>();
+    leads
+      .filter(lead => selectedLeads.has(lead.id!))
+      .forEach(lead => {
+        if (lead.categories) {
+          lead.categories
+            .split(' ')
+            .filter(cat => cat.trim())
+            .forEach(cat => allCategories.add(cat.trim()));
+        }
+      });
+
+    setAvailableCategories(Array.from(allCategories).sort());
+    setSelectedCategories(new Set());
+    setCustomCategory('');
+    setCustomCategoryError('');
+    setExcludeDialogOpen(true);
+  };
+
+  const handleRestoreLeads = async () => {
+    if (selectedLeads.size === 0 || !userAccountId) {
+      return;
+    }
+
+    setIsLoading(true);
+
+    try {
+      const token = await getToken({ template: 'supabase' });
+      if (!token) {
+        alert('Authentication failed. Please sign in again.');
+        return;
+      }
+      const supabase = getAuthenticatedClient(token);
+
+      const leadIds = Array.from(selectedLeads);
+
+      // Update user_leads to set excluded = NULL
+      const { error: updateError } = await supabase
+        .from('user_leads')
+        .update({ excluded: null })
+        .eq('user_id', userAccountId)
+        .in('lead_id', leadIds);
+
+      if (updateError) {
+        console.error('Error restoring leads:', updateError);
+        alert('Failed to restore leads. Please try again.');
+        return;
+      }
+
+      const count = selectedLeads.size;
+      setSuccessMessage(`Successfully restored ${count} lead${count === 1 ? '' : 's'}!`);
+      setSelectedLeads(new Set());
+
+      // Clear success message after 3 seconds
+      setTimeout(() => setSuccessMessage(''), 3000);
+
+      // Reload leads
+      await loadLeads();
+    } catch (error) {
+      console.error('Error restoring leads:', error);
+      alert('Failed to restore leads. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const confirmExcludeLeads = async () => {
+    if (!userAccountId) {
+      return;
+    }
+
+    // Validate custom category if provided
+    if (customCategory.trim()) {
+      if (!/^[a-z_]+(,[a-z_]+)*$/.test(customCategory)) {
+        return; // Don't proceed if validation failed
+      }
+    }
+
+    setIsLoading(true);
+
+    try {
+      const token = await getToken({ template: 'supabase' });
+      if (!token) {
+        alert('Authentication failed. Please sign in again.');
+        return;
+      }
+      const supabase = getAuthenticatedClient(token);
+
+      const leadIds = Array.from(selectedLeads);
+
+      // Update user_leads to set excluded = NOW()
+      const { error: updateError } = await supabase
+        .from('user_leads')
+        .update({ excluded: new Date().toISOString() })
+        .eq('user_id', userAccountId)
+        .in('lead_id', leadIds);
+
+      if (updateError) {
+        console.error('Error excluding leads:', updateError);
+        alert('Failed to exclude leads. Please try again.');
+        setIsLoading(false);
+        return;
+      }
+
+      // If any categories were selected or entered, update serp_exc_cat
+      const categoriesToAdd: string[] = [];
+
+      // Add selected checkbox categories
+      categoriesToAdd.push(...Array.from(selectedCategories));
+
+      // Add custom categories
+      if (customCategory.trim()) {
+        const customCats = customCategory.split(',').filter(c => c.trim());
+        categoriesToAdd.push(...customCats);
+      }
+
+      if (categoriesToAdd.length > 0) {
+        // Fetch current serp_exc_cat
+        const { data: userData, error: fetchError } = await supabase
+          .from('user_accounts')
+          .select('serp_exc_cat')
+          .eq('id', userAccountId)
+          .single();
+
+        if (fetchError) {
+          console.error('Error fetching user account:', fetchError);
+        } else {
+          // Parse existing categories
+          const existingCategories = (userData?.serp_exc_cat || '')
+            .split(',')
+            .filter(c => c.trim());
+
+          // Merge and deduplicate
+          const allCategoriesSet = new Set([...existingCategories, ...categoriesToAdd]);
+          const newSerpExcCat = Array.from(allCategoriesSet).sort().join(',');
+
+          // Update user_accounts
+          const { error: updateCatError } = await supabase
+            .from('user_accounts')
+            .update({ serp_exc_cat: newSerpExcCat })
+            .eq('id', userAccountId);
+
+          if (updateCatError) {
+            console.error('Error updating excluded categories:', updateCatError);
+          }
+        }
+      }
+
+      const count = selectedLeads.size;
+      setSuccessMessage(`Successfully excluded ${count} lead${count === 1 ? '' : 's'}!`);
+      setSelectedLeads(new Set());
+      setExcludeDialogOpen(false);
+      setSelectedCategories(new Set());
+      setCustomCategory('');
+      setCustomCategoryError('');
+
+      // Clear success message after 3 seconds
+      setTimeout(() => setSuccessMessage(''), 3000);
+
+      // Reload leads
+      await loadLeads();
+    } catch (error) {
+      console.error('Error excluding leads:', error);
+      alert('Failed to exclude leads. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const validateCustomCategory = (value: string) => {
+    setCustomCategory(value);
+
+    if (!value.trim()) {
+      setCustomCategoryError('');
+    } else if (/^[a-z_]+(,[a-z_]+)*$/.test(value)) {
+      setCustomCategoryError('');
+    } else {
+      setCustomCategoryError('Categories must be lowercase letters and underscores only, separated by commas with no spaces (example: plumber,electrician,contractor)');
+    }
+  };
+
+  const toggleCategorySelection = (category: string) => {
+    const newSelection = new Set(selectedCategories);
+    if (newSelection.has(category)) {
+      newSelection.delete(category);
+    } else {
+      newSelection.add(category);
+    }
+    setSelectedCategories(newSelection);
   };
 
   const handleGenerateEmails = async () => {
@@ -289,30 +543,77 @@ export default function LeadsPage() {
           </div>
         )}
 
+        {/* Excluded Leads Banner */}
+        {showExcludedLeads && (
+          <div className="mb-4 rounded-lg bg-amber-50 border border-amber-200 p-3">
+            <p className="text-sm font-medium text-amber-800">
+              ⚠️ Showing only excluded leads (most recent first)
+            </p>
+          </div>
+        )}
+
         <div className="mb-4 flex items-center justify-between">
           <div className="flex items-center gap-4">
+            {!showExcludedLeads && (
+              <>
+                <label className="flex items-center gap-2">
+                  <Checkbox
+                    checked={showWithoutEmails}
+                    onCheckedChange={(checked) => setShowWithoutEmails(checked as boolean)}
+                  />
+                  <span className="text-sm text-gray-600">Show leads without emails</span>
+                </label>
+                <label className="flex items-center gap-2">
+                  <Checkbox
+                    checked={showEmailedLeads}
+                    onCheckedChange={(checked) => setShowEmailedLeads(checked as boolean)}
+                  />
+                  <span className="text-sm text-gray-600">Show already emailed leads</span>
+                </label>
+              </>
+            )}
             <label className="flex items-center gap-2">
               <Checkbox
-                checked={showWithoutEmails}
-                onCheckedChange={(checked) => setShowWithoutEmails(checked as boolean)}
+                checked={showExcludedLeads}
+                onCheckedChange={(checked) => setShowExcludedLeads(checked as boolean)}
               />
-              <span className="text-sm text-gray-600">Show leads without emails</span>
+              <span className="text-sm text-gray-600">Show excluded leads</span>
             </label>
-            <label className="flex items-center gap-2">
-              <Checkbox
-                checked={showEmailedLeads}
-                onCheckedChange={(checked) => setShowEmailedLeads(checked as boolean)}
-              />
-              <span className="text-sm text-gray-600">Show already emailed leads</span>
-            </label>
+            {selectedLeads.size > 0 && (
+              <span className="text-sm font-medium text-gray-700">
+                {selectedLeads.size} selected
+              </span>
+            )}
           </div>
-          <Button
-            onClick={handleGenerateEmails}
-            disabled={selectedLeads.size === 0 || isLoading}
-            className="bg-brand-500 hover:bg-brand-600 text-white"
-          >
-            Generate Emails ({selectedLeads.size})
-          </Button>
+          {showExcludedLeads ? (
+            <Button
+              onClick={handleRestoreLeads}
+              disabled={selectedLeads.size === 0 || isLoading}
+              className="bg-green-500 hover:bg-green-600 text-white"
+            >
+              Restore Leads
+            </Button>
+          ) : (
+            <>
+              <div className="flex items-center gap-2">
+                <Button
+                  onClick={handleRemoveLeads}
+                  disabled={selectedLeads.size === 0 || isLoading}
+                  variant="outline"
+                  className="border-red-300 text-red-600 hover:bg-red-50"
+                >
+                  Remove Leads
+                </Button>
+                <Button
+                  onClick={handleGenerateEmails}
+                  disabled={selectedLeads.size === 0 || isLoading}
+                  className="bg-brand-500 hover:bg-brand-600 text-white"
+                >
+                  Generate Emails
+                </Button>
+              </div>
+            </>
+          )}
         </div>
 
         {isLoading ? (
@@ -433,6 +734,76 @@ export default function LeadsPage() {
             </div>
           </>
         )}
+
+        {/* Exclusion Dialog */}
+        <Dialog open={excludeDialogOpen} onOpenChange={setExcludeDialogOpen}>
+          <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Remove Selected Leads</DialogTitle>
+              <DialogDescription>
+                Optionally add categories to your excluded list
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="space-y-4 py-4">
+              {/* Category Checkboxes */}
+              {availableCategories.length > 0 && (
+                <div>
+                  <label className="text-sm font-medium text-gray-700 mb-2 block">
+                    Categories from selected leads:
+                  </label>
+                  <div className="grid grid-cols-2 gap-2 max-h-48 overflow-y-auto border border-gray-200 rounded-lg p-3">
+                    {availableCategories.map((category) => (
+                      <label key={category} className="flex items-center gap-2 cursor-pointer hover:bg-gray-50 p-1 rounded">
+                        <Checkbox
+                          checked={selectedCategories.has(category)}
+                          onCheckedChange={() => toggleCategorySelection(category)}
+                        />
+                        <span className="text-sm text-gray-700">{category}</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Custom Category Input */}
+              <div>
+                <label className="text-sm font-medium text-gray-700 mb-2 block">
+                  Custom Categories (comma-separated, no spaces):
+                </label>
+                <Input
+                  value={customCategory}
+                  onChange={(e) => validateCustomCategory(e.target.value)}
+                  placeholder="plumber,electrician,contractor"
+                  className={customCategoryError ? 'border-red-300 bg-red-50' : ''}
+                />
+                {customCategoryError && (
+                  <p className="mt-1 text-sm text-red-600">{customCategoryError}</p>
+                )}
+                <p className="mt-1 text-xs text-gray-500">
+                  Enter custom categories as comma-separated values. Must be lowercase letters and underscores only.
+                </p>
+              </div>
+            </div>
+
+            <DialogFooter>
+              <Button
+                variant="outline"
+                onClick={() => setExcludeDialogOpen(false)}
+                disabled={isLoading}
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={confirmExcludeLeads}
+                disabled={isLoading || !!customCategoryError}
+                className="bg-red-500 hover:bg-red-600 text-white"
+              >
+                {isLoading ? 'Removing...' : 'Confirm Removal'}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   );
