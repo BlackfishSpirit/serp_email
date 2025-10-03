@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useAuth, useUser } from '@clerk/nextjs';
 import { getAuthenticatedClient } from "@/lib/supabase/client";
+import { InformationCircleIcon } from '@heroicons/react/24/outline';
 
 export default function SerpSettingsPage() {
   const { isLoaded, isSignedIn, userId, getToken } = useAuth();
@@ -22,6 +23,10 @@ export default function SerpSettingsPage() {
   const [repeatSearches, setRepeatSearches] = useState(false);
   const [serpDataLoaded, setSerpDataLoaded] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [invalidLocationCodes, setInvalidLocationCodes] = useState<string[]>([]);
+  const [isValidatingCodes, setIsValidatingCodes] = useState(false);
+  const [invalidCategoryItems, setInvalidCategoryItems] = useState<string[]>([]);
+  const [invalidExcludedCategoryItems, setInvalidExcludedCategoryItems] = useState<string[]>([]);
 
   // Redirect to sign-in if not authenticated
   useEffect(() => {
@@ -32,16 +37,55 @@ export default function SerpSettingsPage() {
     }
   }, [isLoaded, isSignedIn, userId]);
 
-  // Auto-save SERP settings when they change (with debounce)
+  // Auto-save SERP settings when they change AND after validation completes
   useEffect(() => {
     if (!isSignedIn || !serpDataLoaded) return;
 
+    // Don't save while validation is in progress
+    if (isValidatingCodes) return;
+
+    // Don't save if there are validation errors
+    if (invalidCategoryItems.length > 0 || invalidExcludedCategoryItems.length > 0 || invalidLocationCodes.length > 0) {
+      return;
+    }
+
     const timeoutId = setTimeout(() => {
       autoSaveSerpSettings();
-    }, 1000); // 1 second debounce
+    }, 2000); // 2 second debounce after validations pass
 
     return () => clearTimeout(timeoutId);
-  }, [serpKeywords, serpCategory, serpExcludedCategory, serpLocations, serpStates, isSignedIn, serpDataLoaded]);
+  }, [serpKeywords, serpCategory, serpExcludedCategory, serpLocations, serpStates, isSignedIn, serpDataLoaded, invalidCategoryItems, invalidExcludedCategoryItems, invalidLocationCodes, isValidatingCodes]);
+
+  // Validate location codes when they change
+  useEffect(() => {
+    if (!serpLocations || !isSignedIn) {
+      setInvalidLocationCodes([]);
+      return;
+    }
+
+    const timeoutId = setTimeout(() => {
+      validateLocationCodes();
+    }, 1500); // 1.5 second debounce
+
+    return () => clearTimeout(timeoutId);
+  }, [serpLocations, isSignedIn]);
+
+  // Validate category fields when they change
+  useEffect(() => {
+    if (!serpCategory) {
+      setInvalidCategoryItems([]);
+      return;
+    }
+    validateCategoryField(serpCategory, setInvalidCategoryItems);
+  }, [serpCategory]);
+
+  useEffect(() => {
+    if (!serpExcludedCategory) {
+      setInvalidExcludedCategoryItems([]);
+      return;
+    }
+    validateCategoryField(serpExcludedCategory, setInvalidExcludedCategoryItems);
+  }, [serpExcludedCategory]);
 
   const loadAccountNumber = async () => {
     if (!userId) return;
@@ -92,6 +136,74 @@ export default function SerpSettingsPage() {
     }
   };
 
+  const validateCategoryField = (value: string, setInvalid: (items: string[]) => void) => {
+    if (!value.trim()) {
+      setInvalid([]);
+      return;
+    }
+
+    // Parse category items
+    const items = value
+      .split(',')
+      .map(item => item.trim())
+      .filter(item => item.length > 0);
+
+    // Check each item for invalid characters (only letters and underscores allowed)
+    const invalidItems = items.filter(item => !/^[a-zA-Z_]+$/.test(item));
+
+    setInvalid(invalidItems);
+  };
+
+  const validateLocationCodes = async () => {
+    if (!serpLocations.trim()) {
+      setInvalidLocationCodes([]);
+      return;
+    }
+
+    setIsValidatingCodes(true);
+    try {
+      // Get authenticated Supabase client with Clerk token
+      const token = await getToken({ template: 'supabase' });
+      if (!token) {
+        console.error('Failed to get Clerk token for validation');
+        return;
+      }
+      const supabase = getAuthenticatedClient(token);
+
+      // Parse location codes
+      const codes = serpLocations
+        .split(',')
+        .map(code => code.trim())
+        .filter(code => code.length > 0);
+
+      if (codes.length === 0) {
+        setInvalidLocationCodes([]);
+        return;
+      }
+
+      // Query google_locations table to check which codes exist
+      const { data, error } = await supabase
+        .from('google_locations')
+        .select('location_code')
+        .in('location_code', codes);
+
+      if (error) {
+        console.error('Error validating location codes:', error);
+        return;
+      }
+
+      // Find codes that don't exist in the database
+      const validCodes = new Set(data?.map(row => row.location_code.toString()) || []);
+      const invalid = codes.filter(code => !validCodes.has(code));
+
+      setInvalidLocationCodes(invalid);
+    } catch (error) {
+      console.error('Error validating location codes:', error);
+    } finally {
+      setIsValidatingCodes(false);
+    }
+  };
+
   const loadSerpSettings = async (userId: string) => {
     try {
       // Get authenticated Supabase client with Clerk token
@@ -130,6 +242,19 @@ export default function SerpSettingsPage() {
 
   const autoSaveSerpSettings = async () => {
     if (!userId) return;
+
+    // Wait for validation to complete if it's in progress (silently)
+    if (isValidatingCodes) {
+      console.log('Cannot save: validation in progress');
+      return;
+    }
+
+    // Check for validation errors before saving (silently skip auto-save)
+    if (invalidCategoryItems.length > 0 || invalidExcludedCategoryItems.length > 0 || invalidLocationCodes.length > 0) {
+      console.log('Cannot save: validation errors exist');
+      // Don't show error popup for auto-save, just silently skip
+      return;
+    }
 
     setIsSaving(true);
     try {
@@ -187,6 +312,12 @@ export default function SerpSettingsPage() {
     try {
       if (!isSignedIn || !userId) {
         setError("Please log in first");
+        return;
+      }
+
+      // Check for validation errors before starting search
+      if (invalidCategoryItems.length > 0 || invalidExcludedCategoryItems.length > 0 || invalidLocationCodes.length > 0) {
+        setError('Please fix validation errors before starting search.');
         return;
       }
 
@@ -315,6 +446,17 @@ export default function SerpSettingsPage() {
     }
   };
 
+  // Tooltip component
+  const InfoTooltip = ({ text }: { text: string }) => (
+    <div className="group relative inline-block">
+      <InformationCircleIcon className="h-4 w-4 text-gray-400 hover:text-gray-600 cursor-help" />
+      <div className="invisible group-hover:visible absolute z-50 w-64 p-2 mt-1 text-xs text-white bg-gray-900 rounded-lg shadow-lg -left-28 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+        {text}
+        <div className="absolute w-2 h-2 bg-gray-900 transform rotate-45 -top-1 left-1/2 -translate-x-1/2"></div>
+      </div>
+    </div>
+  );
+
   if (!isLoaded || !isSignedIn) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -387,9 +529,12 @@ export default function SerpSettingsPage() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           <div className="space-y-6">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Keywords:
-              </label>
+              <div className="flex items-center gap-2 mb-2">
+                <label className="block text-sm font-medium text-gray-700">
+                  Keywords: <span className="text-red-500">*</span>
+                </label>
+                <InfoTooltip text="Required field. Enter search keywords to find potential leads. Multiple keywords separated by commas (e.g., plumber,electrician,contractor)." />
+              </div>
               <textarea
                 value={serpKeywords}
                 onChange={(e) => setSerpKeywords(e.target.value)}
@@ -401,9 +546,12 @@ export default function SerpSettingsPage() {
 
             <div>
               <div className="flex items-center justify-between mb-2">
-                <label className="block text-sm font-medium text-gray-700">
-                  Categories:
-                </label>
+                <div className="flex items-center gap-2">
+                  <label className="block text-sm font-medium text-gray-700">
+                    Categories:
+                  </label>
+                  <InfoTooltip text="Optional. Filter results by business category. Can be whole or partial category names (e.g., restaurant,auto repair). Only necessary if the keyword is not specific enough." />
+                </div>
                 <Link
                   href="/auth/category-lookup?type=included"
                   className="text-sm text-blue-600 hover:text-blue-700 font-medium"
@@ -416,15 +564,35 @@ export default function SerpSettingsPage() {
                 value={serpCategory}
                 onChange={(e) => setSerpCategory(e.target.value)}
                 placeholder="category1,category2,category3"
-                className="w-full rounded-lg border border-gray-300 px-4 py-3 focus:border-blue-500 focus:ring-blue-500"
+                className={`w-full rounded-lg border px-4 py-3 focus:border-blue-500 focus:ring-blue-500 ${
+                  invalidCategoryItems.length > 0
+                    ? 'border-red-300 bg-red-50'
+                    : 'border-gray-300'
+                }`}
               />
+              {invalidCategoryItems.length > 0 && (
+                <div className="mt-2 p-3 rounded-lg bg-red-50 border border-red-200">
+                  <p className="text-sm font-medium text-red-800 mb-1">
+                    Invalid category items found:
+                  </p>
+                  <p className="text-sm text-red-700">
+                    {invalidCategoryItems.join(', ')}
+                  </p>
+                  <p className="text-xs text-red-600 mt-1">
+                    Categories can only contain letters and underscores (no spaces or special characters).
+                  </p>
+                </div>
+              )}
             </div>
 
             <div>
               <div className="flex items-center justify-between mb-2">
-                <label className="block text-sm font-medium text-gray-700">
-                  Excluded Categories:
-                </label>
+                <div className="flex items-center gap-2">
+                  <label className="block text-sm font-medium text-gray-700">
+                    Excluded Categories:
+                  </label>
+                  <InfoTooltip text="Optional. Exclude specific business categories from results. Can be whole or partial category names (e.g., medical will exclude any business with a category including medical, such as medical_supply_store)." />
+                </div>
                 <Link
                   href="/auth/category-lookup?type=excluded"
                   className="text-sm text-blue-600 hover:text-blue-700 font-medium"
@@ -437,40 +605,85 @@ export default function SerpSettingsPage() {
                 value={serpExcludedCategory}
                 onChange={(e) => setSerpExcludedCategory(e.target.value)}
                 placeholder="excluded1,excluded2,excluded3"
-                className="w-full rounded-lg border border-gray-300 px-4 py-3 focus:border-blue-500 focus:ring-blue-500"
+                className={`w-full rounded-lg border px-4 py-3 focus:border-blue-500 focus:ring-blue-500 ${
+                  invalidExcludedCategoryItems.length > 0
+                    ? 'border-red-300 bg-red-50'
+                    : 'border-gray-300'
+                }`}
               />
+              {invalidExcludedCategoryItems.length > 0 && (
+                <div className="mt-2 p-3 rounded-lg bg-red-50 border border-red-200">
+                  <p className="text-sm font-medium text-red-800 mb-1">
+                    Invalid category items found:
+                  </p>
+                  <p className="text-sm text-red-700">
+                    {invalidExcludedCategoryItems.join(', ')}
+                  </p>
+                  <p className="text-xs text-red-600 mt-1">
+                    Categories can only contain letters and underscores (no spaces or special characters).
+                  </p>
+                </div>
+              )}
             </div>
           </div>
 
           <div className="space-y-6">
             <div>
               <div className="flex items-center justify-between mb-2">
-                <label className="block text-sm font-medium text-gray-700">
-                  Location Codes:
-                </label>
-                <Link
-                  href="/auth/location-lookup"
-                  className="rounded-lg bg-gray-500 px-3 py-1 text-xs text-white hover:bg-gray-600 transition-colors"
-                >
-                  Browse
-                </Link>
+                <div className="flex items-center gap-2">
+                  <label className="block text-sm font-medium text-gray-700">
+                    Location Codes: <span className="text-red-500">*</span>
+                  </label>
+                  <InfoTooltip text="Required field. Enter Google location codes to target specific geographic areas. Use the Browse button to find codes for your desired locations." />
+                </div>
+                <div className="flex items-center gap-2">
+                  {isValidatingCodes && (
+                    <span className="text-xs text-gray-500 flex items-center">
+                      <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-blue-600 mr-1"></div>
+                      Validating...
+                    </span>
+                  )}
+                  <Link
+                    href="/auth/location-lookup"
+                    className="rounded-lg bg-gray-500 px-3 py-1 text-xs text-white hover:bg-gray-600 transition-colors"
+                  >
+                    Browse
+                  </Link>
+                </div>
               </div>
               <textarea
                 value={serpLocations}
                 onChange={(e) => setSerpLocations(e.target.value)}
                 rows={4}
                 placeholder="200819,1027744"
-                className="w-full rounded-lg border border-gray-300 px-4 py-3 focus:border-blue-500 focus:ring-blue-500"
+                className={`w-full rounded-lg border px-4 py-3 focus:border-blue-500 focus:ring-blue-500 ${
+                  invalidLocationCodes.length > 0
+                    ? 'border-red-300 bg-red-50'
+                    : 'border-gray-300'
+                }`}
               />
+              {invalidLocationCodes.length > 0 && (
+                <div className="mt-2 p-3 rounded-lg bg-red-50 border border-red-200">
+                  <p className="text-sm font-medium text-red-800 mb-1">
+                    Invalid location codes found:
+                  </p>
+                  <p className="text-sm text-red-700">
+                    {invalidLocationCodes.join(', ')}
+                  </p>
+                  <p className="text-xs text-red-600 mt-1">
+                    These codes do not exist in the Google Locations database. Please verify or remove them.
+                  </p>
+                </div>
+              )}
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Limit to States/Regions:
-              </label>
-              <p className="text-xs text-gray-500 mb-2">
-                Only necessary if locations are close to borders with areas you do not want to or can't sell to. Must match what appears in Google Maps addresses.
-              </p>
+              <div className="flex items-center gap-2 mb-2">
+                <label className="block text-sm font-medium text-gray-700">
+                  Limit to States/Regions:
+                </label>
+                <InfoTooltip text="Optional. Only necessary if locations are close to borders with areas you do not want to or can't sell to. Must match what appears in Google Maps addresses (e.g., WA,OR,Canada)." />
+              </div>
               <textarea
                 value={serpStates}
                 onChange={(e) => setSerpStates(e.target.value)}
