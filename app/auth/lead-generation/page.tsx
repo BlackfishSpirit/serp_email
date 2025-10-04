@@ -494,7 +494,7 @@ export default function SerpSettingsPage() {
       {/* Header */}
       <div className="flex items-center justify-between border-b border-gray-200 pb-6">
         <div className="flex items-center space-x-4">
-          <h2 className="text-3xl font-bold text-gray-900">SERP Settings</h2>
+          <h2 className="text-3xl font-bold text-gray-900">Lead Generation</h2>
           {isSaving && (
             <div className="flex items-center text-sm text-gray-500">
               <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600 mr-2"></div>
@@ -535,10 +535,10 @@ export default function SerpSettingsPage() {
         Logged in as: <span className="font-medium text-gray-900">{user?.primaryEmailAddress?.emailAddress}</span>
       </p>
 
-      {/* SERP Settings */}
+      {/* Lead Search Settings */}
       <div className="border-t border-gray-200 pt-8">
         <h3 className="text-2xl font-semibold text-gray-900 mb-6">
-          SERP (Search Engine Results Page) Settings
+          Search Configuration
         </h3>
         <div className="rounded-lg bg-gray-50 border border-gray-200 p-6 mb-8">
           <p className="text-sm text-gray-600">
@@ -570,9 +570,9 @@ export default function SerpSettingsPage() {
               <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center gap-2">
                   <label className="block text-sm font-medium text-gray-700">
-                    Location Codes: <span className="text-red-500">*</span>
+                    Search Locations: <span className="text-red-500">*</span>
                   </label>
-                  <InfoTooltip text="Required field. Enter Google location codes to target specific geographic areas. Use the Browse button to find codes for your desired locations." />
+                  <InfoTooltip text="Required field. Enter location codes to target specific geographic areas where you want to find leads. Use the Browse button to find codes for your desired locations." />
                 </div>
                 <div className="flex items-center gap-2">
                   {isValidatingCodes && (
@@ -626,7 +626,7 @@ export default function SerpSettingsPage() {
               Optional Refinement Settings
             </h4>
             <p className="text-sm text-gray-600 mt-1">
-              These fields should only be used to limit search results. Do not try to choose every category your business might fall into. Carefully chosen keywords will be more effective.
+              These fields should only be used to limit search results. Do not try to choose every category potential leads might include. Carefully chosen keywords will be more effective.
             </p>
           </div>
 
@@ -741,7 +741,7 @@ export default function SerpSettingsPage() {
             disabled={isLoading}
             className="rounded-lg bg-blue-600 px-8 py-3 text-white font-medium hover:bg-blue-700 disabled:bg-gray-400 transition-colors"
           >
-            {isLoading ? "Starting..." : "Confirm Searches"}
+            {isLoading ? "Starting..." : "Find Leads"}
           </button>
         </div>
 

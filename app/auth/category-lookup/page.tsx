@@ -140,9 +140,9 @@ export default function CategoryLookupPage() {
   const handleSaveAndReturn = async () => {
     const success = await saveSelectedCategories();
     if (success) {
-      setMessage('Categories saved successfully! Returning to SERP settings...');
+      setMessage('Categories saved successfully! Returning to Lead Generation...');
       setTimeout(() => {
-        window.location.href = "/auth/serp-settings";
+        window.location.href = "/auth/lead-generation";
       }, 1500);
     }
   };

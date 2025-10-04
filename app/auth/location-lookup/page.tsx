@@ -123,9 +123,9 @@ export default function LocationLookupPage() {
   const handleSaveAndReturn = async () => {
     const success = await saveSelectedLocations();
     if (success) {
-      setMessage('Locations saved successfully! Returning to SERP settings...');
+      setMessage('Locations saved successfully! Returning to Lead Generation...');
       setTimeout(() => {
-        window.location.href = "/auth/serp-settings";
+        window.location.href = "/auth/lead-generation";
       }, 1500);
     }
   };

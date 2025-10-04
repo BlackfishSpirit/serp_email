@@ -41,9 +41,9 @@ export default async function DashboardPage() {
           color: "bg-cyan-500"
         },
         {
-          name: "SERP Settings",
-          description: "Configure search keywords and parameters for lead generation",
-          href: "/auth/serp-settings",
+          name: "Lead Generation",
+          description: "Configure search keywords and parameters for finding leads",
+          href: "/auth/lead-generation",
           icon: CogIcon,
           color: "bg-orange-500"
         }
@@ -162,10 +162,10 @@ export default async function DashboardPage() {
                 View Leads
               </Link>
               <Link
-                href="/auth/serp-settings"
+                href="/auth/lead-generation"
                 className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-blue-700 bg-blue-200 hover:bg-blue-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
               >
-                SERP Settings
+                Lead Generation
               </Link>
               <Link
                 href="/auth/email-drafts"
