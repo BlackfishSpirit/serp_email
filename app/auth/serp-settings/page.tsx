@@ -592,9 +592,7 @@ export default function SerpSettingsPage() {
               <textarea
                 value={serpLocations}
                 onChange={(e) => {
-                  // Only allow numbers and commas
-                  const filteredValue = e.target.value.replace(/[^0-9,]/g, '');
-                  setSerpLocations(filteredValue);
+                  setSerpLocations(e.target.value);
                 }}
                 rows={4}
                 placeholder="200819,1027744"

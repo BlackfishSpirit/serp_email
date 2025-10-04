@@ -48,7 +48,7 @@ next-env.d.ts
 Thumbs.db
 
 # docker
-.dockerignore
+# Note: .dockerignore is NOT ignored - needed for deployment
 
 # bundle analyzer
 /analyze

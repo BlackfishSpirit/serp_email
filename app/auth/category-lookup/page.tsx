@@ -196,8 +196,14 @@ export default function CategoryLookupPage() {
         // No existing categories, just use new names
         newCategoriesString = selectedNames.join(',');
       } else {
-        // Append new names to existing ones
-        newCategoriesString = currentCategories + ',' + selectedNames.join(',');
+        // Combine existing and new categories
+        const existingCategories = currentCategories.split(',').map(cat => cat.trim()).filter(cat => cat);
+        const allCategories = [...existingCategories, ...selectedNames];
+
+        // Remove duplicates while preserving order of first occurrence
+        const uniqueCategories = Array.from(new Set(allCategories));
+
+        newCategoriesString = uniqueCategories.join(',');
       }
 
       // Update the database

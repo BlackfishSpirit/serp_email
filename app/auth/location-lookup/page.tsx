@@ -176,8 +176,14 @@ export default function LocationLookupPage() {
         // No existing locations, just use new codes
         newLocationsString = selectedCodes.join(',');
       } else {
-        // Append new codes to existing ones
-        newLocationsString = currentLocations + ',' + selectedCodes.join(',');
+        // Combine existing and new codes
+        const existingCodes = currentLocations.split(',').map(code => code.trim()).filter(code => code);
+        const allCodes = [...existingCodes, ...selectedCodes];
+
+        // Remove duplicates while preserving order of first occurrence
+        const uniqueCodes = Array.from(new Set(allCodes));
+
+        newLocationsString = uniqueCodes.join(',');
       }
 
       // Update the database
