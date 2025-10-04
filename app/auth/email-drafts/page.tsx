@@ -6,6 +6,7 @@ import { useAuth } from '@clerk/nextjs';
 import { supabase, getAuthenticatedClient } from "@/lib/supabase/client";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 interface EmailDraft {
   id: string;
@@ -33,6 +34,8 @@ export default function EmailDraftsPage() {
   const [totalRecords, setTotalRecords] = useState(0);
   const [totalPages, setTotalPages] = useState(0);
   const [exportData, setExportData] = useState<{csvContent: string, filename: string} | null>(null);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   const recordsPerPage = 20;
 
   useEffect(() => {
@@ -324,6 +327,54 @@ export default function EmailDraftsPage() {
     clearSelection();
   };
 
+  const handleDeleteSelected = () => {
+    if (selectedDrafts.size === 0) {
+      alert('Please select drafts to delete');
+      return;
+    }
+    setDeleteDialogOpen(true);
+  };
+
+  const confirmDelete = async () => {
+    if (selectedDrafts.size === 0) return;
+
+    setIsDeleting(true);
+    setError("");
+
+    try {
+      const token = await getToken({ template: 'supabase' });
+      if (!token) {
+        setError('Authentication failed. Please sign in again.');
+        setIsDeleting(false);
+        return;
+      }
+      const supabase = getAuthenticatedClient(token);
+
+      // Delete selected drafts
+      const { error: deleteError } = await supabase
+        .from('email_drafts')
+        .delete()
+        .in('id', Array.from(selectedDrafts));
+
+      if (deleteError) {
+        console.error('Error deleting drafts:', deleteError);
+        setError('Failed to delete email drafts.');
+        setIsDeleting(false);
+        return;
+      }
+
+      // Clear selection and reload drafts
+      clearSelection();
+      setDeleteDialogOpen(false);
+      await loadEmailDrafts();
+    } catch (error) {
+      console.error('Error deleting drafts:', error);
+      setError('An error occurred while deleting drafts.');
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
   if (!isLoaded || !isSignedIn) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -385,13 +436,22 @@ export default function EmailDraftsPage() {
                 </button>
               )}
               {selectedDrafts.size > 0 && !exportData && (
-                <Button
-                  onClick={handleExportSelected}
-                  className="bg-green-600 hover:bg-green-700 text-white"
-                  size="sm"
-                >
-                  Export Selected Drafts ({selectedDrafts.size})
-                </Button>
+                <>
+                  <Button
+                    onClick={handleExportSelected}
+                    className="bg-green-600 hover:bg-green-700 text-white"
+                    size="sm"
+                  >
+                    Export Selected Drafts
+                  </Button>
+                  <Button
+                    onClick={handleDeleteSelected}
+                    className="bg-red-600 hover:bg-red-700 text-white"
+                    size="sm"
+                  >
+                    Delete Selected
+                  </Button>
+                </>
               )}
               {exportData && (
                 <div className="flex items-center space-x-2">
@@ -571,6 +631,35 @@ export default function EmailDraftsPage() {
           </div>
         </div>
       )}
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete Email Drafts</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete {selectedDrafts.size} selected email draft{selectedDrafts.size > 1 ? 's' : ''}?
+              This action cannot be undone. New drafts for these leads can be generated.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setDeleteDialogOpen(false)}
+              disabled={isDeleting}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={confirmDelete}
+              disabled={isDeleting}
+              className="bg-red-600 hover:bg-red-700 text-white"
+            >
+              {isDeleting ? 'Deleting...' : 'Delete Permanently'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
     </div>
   );
