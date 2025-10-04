@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useAuth, useUser } from '@clerk/nextjs';
 import { getAuthenticatedClient } from "@/lib/supabase/client";
 import { InformationCircleIcon } from '@heroicons/react/24/outline';
+import { SearchPreviewModal } from "@/components/search-preview-modal";
 
 export default function SerpSettingsPage() {
   const { isLoaded, isSignedIn, userId, getToken } = useAuth();
@@ -20,13 +21,13 @@ export default function SerpSettingsPage() {
   const [serpExcludedCategory, setSerpExcludedCategory] = useState("");
   const [serpLocations, setSerpLocations] = useState("");
   const [serpStates, setSerpStates] = useState("");
-  const [repeatSearches, setRepeatSearches] = useState(false);
   const [serpDataLoaded, setSerpDataLoaded] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [invalidLocationCodes, setInvalidLocationCodes] = useState<string[]>([]);
   const [isValidatingCodes, setIsValidatingCodes] = useState(false);
   const [invalidCategoryItems, setInvalidCategoryItems] = useState<string[]>([]);
   const [invalidExcludedCategoryItems, setInvalidExcludedCategoryItems] = useState<string[]>([]);
+  const [searchPreviewModalOpen, setSearchPreviewModalOpen] = useState(false);
 
   // Redirect to sign-in if not authenticated
   useEffect(() => {
@@ -304,7 +305,32 @@ export default function SerpSettingsPage() {
     }
   };
 
-  const handleStartSearch = async () => {
+  const handleStartSearchClick = () => {
+    setError("");
+    setMessage("");
+
+    if (!isSignedIn || !userId) {
+      setError("Please log in first");
+      return;
+    }
+
+    // Check for validation errors before starting search
+    if (invalidCategoryItems.length > 0 || invalidExcludedCategoryItems.length > 0 || invalidLocationCodes.length > 0) {
+      setError('Please fix validation errors before starting search.');
+      return;
+    }
+
+    // Check if keywords and locations are provided
+    if (!serpKeywords.trim() || !serpLocations.trim()) {
+      setError('Please provide both keywords and location codes.');
+      return;
+    }
+
+    // Open the search preview modal
+    setSearchPreviewModalOpen(true);
+  };
+
+  const executeSearch = async (repeatSearches: boolean) => {
     setIsLoading(true);
     setError("");
     setMessage("");
@@ -312,12 +338,6 @@ export default function SerpSettingsPage() {
     try {
       if (!isSignedIn || !userId) {
         setError("Please log in first");
-        return;
-      }
-
-      // Check for validation errors before starting search
-      if (invalidCategoryItems.length > 0 || invalidExcludedCategoryItems.length > 0 || invalidLocationCodes.length > 0) {
-        setError('Please fix validation errors before starting search.');
         return;
       }
 
@@ -601,24 +621,6 @@ export default function SerpSettingsPage() {
           </div>
         </div>
 
-        {/* Repeat Searches Checkbox */}
-        <div className="mt-6">
-          <div className="flex items-start space-x-3">
-            <input
-              type="checkbox"
-              id="repeat-searches"
-              checked={repeatSearches}
-              onChange={(e) => setRepeatSearches(e.target.checked)}
-              className="mt-1 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-            />
-            <label htmlFor="repeat-searches" className="text-sm text-gray-700">
-              <span className="font-medium">Repeat Searches</span>
-              <br />
-              <span className="text-gray-500">Previous keyword/location combinations are saved and repeating a search may not yield new results</span>
-            </label>
-          </div>
-        </div>
-
         {/* Optional Refinement Settings Section */}
         <div className="mt-8 pt-8 border-t border-gray-300">
           <div className="mb-6">
@@ -737,13 +739,22 @@ export default function SerpSettingsPage() {
 
         <div className="mt-8 flex justify-end gap-3">
           <button
-            onClick={handleStartSearch}
+            onClick={handleStartSearchClick}
             disabled={isLoading}
             className="rounded-lg bg-blue-600 px-8 py-3 text-white font-medium hover:bg-blue-700 disabled:bg-gray-400 transition-colors"
           >
             {isLoading ? "Starting..." : "Start Search"}
           </button>
         </div>
+
+        <SearchPreviewModal
+          open={searchPreviewModalOpen}
+          onOpenChange={setSearchPreviewModalOpen}
+          onContinue={executeSearch}
+          keywords={serpKeywords}
+          locationCodes={serpLocations}
+          userAccountId={accountNumber || 0}
+        />
       </div>
     </div>
   );
