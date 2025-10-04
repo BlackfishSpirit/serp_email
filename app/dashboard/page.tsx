@@ -79,13 +79,6 @@ export default async function DashboardPage() {
           href: "/auth/account-settings",
           icon: CogIcon,
           color: "bg-gray-500"
-        },
-        {
-          name: "Profile Setup",
-          description: "Complete your profile setup and configuration",
-          href: "/auth/profile-setup",
-          icon: UserGroupIcon,
-          color: "bg-purple-500"
         }
       ]
     }

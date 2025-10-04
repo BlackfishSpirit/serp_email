@@ -543,88 +543,6 @@ export default function SerpSettingsPage() {
                 className="w-full rounded-lg border border-gray-300 px-4 py-3 focus:border-blue-500 focus:ring-blue-500"
               />
             </div>
-
-            <div>
-              <div className="flex items-center justify-between mb-2">
-                <div className="flex items-center gap-2">
-                  <label className="block text-sm font-medium text-gray-700">
-                    Categories:
-                  </label>
-                  <InfoTooltip text="Optional. Filter results by business category. Can be whole or partial category names (e.g., restaurant,auto repair). Only necessary if the keyword is not specific enough." />
-                </div>
-                <Link
-                  href="/auth/category-lookup?type=included"
-                  className="text-sm text-blue-600 hover:text-blue-700 font-medium"
-                >
-                  Browse
-                </Link>
-              </div>
-              <input
-                type="text"
-                value={serpCategory}
-                onChange={(e) => setSerpCategory(e.target.value)}
-                placeholder="category1,category2,category3"
-                className={`w-full rounded-lg border px-4 py-3 focus:border-blue-500 focus:ring-blue-500 ${
-                  invalidCategoryItems.length > 0
-                    ? 'border-red-300 bg-red-50'
-                    : 'border-gray-300'
-                }`}
-              />
-              {invalidCategoryItems.length > 0 && (
-                <div className="mt-2 p-3 rounded-lg bg-red-50 border border-red-200">
-                  <p className="text-sm font-medium text-red-800 mb-1">
-                    Invalid category items found:
-                  </p>
-                  <p className="text-sm text-red-700">
-                    {invalidCategoryItems.join(', ')}
-                  </p>
-                  <p className="text-xs text-red-600 mt-1">
-                    Categories can only contain letters and underscores (no spaces or special characters).
-                  </p>
-                </div>
-              )}
-            </div>
-
-            <div>
-              <div className="flex items-center justify-between mb-2">
-                <div className="flex items-center gap-2">
-                  <label className="block text-sm font-medium text-gray-700">
-                    Excluded Categories:
-                  </label>
-                  <InfoTooltip text="Optional. Exclude specific business categories from results. Can be whole or partial category names (e.g., medical will exclude any business with a category including medical, such as medical_supply_store)." />
-                </div>
-                <Link
-                  href="/auth/category-lookup?type=excluded"
-                  className="text-sm text-blue-600 hover:text-blue-700 font-medium"
-                >
-                  Browse
-                </Link>
-              </div>
-              <input
-                type="text"
-                value={serpExcludedCategory}
-                onChange={(e) => setSerpExcludedCategory(e.target.value)}
-                placeholder="excluded1,excluded2,excluded3"
-                className={`w-full rounded-lg border px-4 py-3 focus:border-blue-500 focus:ring-blue-500 ${
-                  invalidExcludedCategoryItems.length > 0
-                    ? 'border-red-300 bg-red-50'
-                    : 'border-gray-300'
-                }`}
-              />
-              {invalidExcludedCategoryItems.length > 0 && (
-                <div className="mt-2 p-3 rounded-lg bg-red-50 border border-red-200">
-                  <p className="text-sm font-medium text-red-800 mb-1">
-                    Invalid category items found:
-                  </p>
-                  <p className="text-sm text-red-700">
-                    {invalidExcludedCategoryItems.join(', ')}
-                  </p>
-                  <p className="text-xs text-red-600 mt-1">
-                    Categories can only contain letters and underscores (no spaces or special characters).
-                  </p>
-                </div>
-              )}
-            </div>
           </div>
 
           <div className="space-y-6">
@@ -653,7 +571,11 @@ export default function SerpSettingsPage() {
               </div>
               <textarea
                 value={serpLocations}
-                onChange={(e) => setSerpLocations(e.target.value)}
+                onChange={(e) => {
+                  // Only allow numbers and commas
+                  const filteredValue = e.target.value.replace(/[^0-9,]/g, '');
+                  setSerpLocations(filteredValue);
+                }}
                 rows={4}
                 placeholder="200819,1027744"
                 className={`w-full rounded-lg border px-4 py-3 focus:border-blue-500 focus:ring-blue-500 ${
@@ -676,26 +598,11 @@ export default function SerpSettingsPage() {
                 </div>
               )}
             </div>
-
-            <div>
-              <div className="flex items-center gap-2 mb-2">
-                <label className="block text-sm font-medium text-gray-700">
-                  Limit to States/Regions:
-                </label>
-                <InfoTooltip text="Optional. Only necessary if locations are close to borders with areas you do not want to or can't sell to. Must match what appears in Google Maps addresses (e.g., WA,OR,Canada)." />
-              </div>
-              <textarea
-                value={serpStates}
-                onChange={(e) => setSerpStates(e.target.value)}
-                rows={2}
-                placeholder="WA,OR,Canada"
-                className="w-full rounded-lg border border-gray-300 px-4 py-3 focus:border-blue-500 focus:ring-blue-500"
-              />
-            </div>
           </div>
         </div>
 
-        <div className="mt-8 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
+        {/* Repeat Searches Checkbox */}
+        <div className="mt-6">
           <div className="flex items-start space-x-3">
             <input
               type="checkbox"
@@ -707,19 +614,135 @@ export default function SerpSettingsPage() {
             <label htmlFor="repeat-searches" className="text-sm text-gray-700">
               <span className="font-medium">Repeat Searches</span>
               <br />
-              <span className="text-gray-500">Previous searches are saved and repeating a search may not yield new results</span>
+              <span className="text-gray-500">Previous keyword/location combinations are saved and repeating a search may not yield new results</span>
             </label>
           </div>
+        </div>
 
-          <div className="flex gap-3">
-            <button
-              onClick={handleStartSearch}
-              disabled={isLoading}
-              className="rounded-lg bg-blue-600 px-8 py-3 text-white font-medium hover:bg-blue-700 disabled:bg-gray-400 transition-colors"
-            >
-              {isLoading ? "Starting..." : "Start Search"}
-            </button>
+        {/* Optional Refinement Settings Section */}
+        <div className="mt-8 pt-8 border-t border-gray-300">
+          <div className="mb-6">
+            <h4 className="text-lg font-semibold text-gray-900">
+              Optional Refinement Settings
+            </h4>
+            <p className="text-sm text-gray-600 mt-1">
+              These fields should only be used to limit search results. Do not try to choose every category your business might fall into. Carefully chosen keywords will be more effective.
+            </p>
           </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <div className="space-y-6">
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-2">
+                    <label className="block text-sm font-medium text-gray-700">
+                      Categories:
+                    </label>
+                    <InfoTooltip text="Optional. Filter results by business category. Can be whole or partial category names (e.g., restaurant,auto_repair). Only necessary if the keyword is not specific enough." />
+                  </div>
+                  <Link
+                    href="/auth/category-lookup?type=included"
+                    className="text-sm text-blue-600 hover:text-blue-700 font-medium"
+                  >
+                    Browse
+                  </Link>
+                </div>
+                <input
+                  type="text"
+                  value={serpCategory}
+                  onChange={(e) => setSerpCategory(e.target.value)}
+                  placeholder="category1,category2,category3"
+                  className={`w-full rounded-lg border px-4 py-3 focus:border-blue-500 focus:ring-blue-500 ${
+                    invalidCategoryItems.length > 0
+                      ? 'border-red-300 bg-red-50'
+                      : 'border-gray-300'
+                  }`}
+                />
+                {invalidCategoryItems.length > 0 && (
+                  <div className="mt-2 p-3 rounded-lg bg-red-50 border border-red-200">
+                    <p className="text-sm font-medium text-red-800 mb-1">
+                      Invalid category items found:
+                    </p>
+                    <p className="text-sm text-red-700">
+                      {invalidCategoryItems.join(', ')}
+                    </p>
+                    <p className="text-xs text-red-600 mt-1">
+                      Categories can only contain letters and underscores (no spaces or special characters).
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-2">
+                    <label className="block text-sm font-medium text-gray-700">
+                      Excluded Categories:
+                    </label>
+                    <InfoTooltip text="Optional. Exclude specific business categories from results. Can be whole or partial category names (e.g., medical will exclude any business with a category including medical, such as medical_supply_store)." />
+                  </div>
+                  <Link
+                    href="/auth/category-lookup?type=excluded"
+                    className="text-sm text-blue-600 hover:text-blue-700 font-medium"
+                  >
+                    Browse
+                  </Link>
+                </div>
+                <input
+                  type="text"
+                  value={serpExcludedCategory}
+                  onChange={(e) => setSerpExcludedCategory(e.target.value)}
+                  placeholder="excluded1,excluded2,excluded3"
+                  className={`w-full rounded-lg border px-4 py-3 focus:border-blue-500 focus:ring-blue-500 ${
+                    invalidExcludedCategoryItems.length > 0
+                      ? 'border-red-300 bg-red-50'
+                      : 'border-gray-300'
+                  }`}
+                />
+                {invalidExcludedCategoryItems.length > 0 && (
+                  <div className="mt-2 p-3 rounded-lg bg-red-50 border border-red-200">
+                    <p className="text-sm font-medium text-red-800 mb-1">
+                      Invalid category items found:
+                    </p>
+                    <p className="text-sm text-red-700">
+                      {invalidExcludedCategoryItems.join(', ')}
+                    </p>
+                    <p className="text-xs text-red-600 mt-1">
+                      Categories can only contain letters and underscores (no spaces or special characters).
+                    </p>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="space-y-6">
+              <div>
+                <div className="flex items-center gap-2 mb-2">
+                  <label className="block text-sm font-medium text-gray-700">
+                    Limit to States/Regions:
+                  </label>
+                  <InfoTooltip text="Optional. Only necessary if locations are close to borders with areas you do not want to or can't sell to. Must match what appears in Google Maps addresses (e.g., WA,OR,Canada)." />
+                </div>
+                <textarea
+                  value={serpStates}
+                  onChange={(e) => setSerpStates(e.target.value)}
+                  rows={2}
+                  placeholder="WA,OR,Canada"
+                  className="w-full rounded-lg border border-gray-300 px-4 py-3 focus:border-blue-500 focus:ring-blue-500"
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="mt-8 flex justify-end gap-3">
+          <button
+            onClick={handleStartSearch}
+            disabled={isLoading}
+            className="rounded-lg bg-blue-600 px-8 py-3 text-white font-medium hover:bg-blue-700 disabled:bg-gray-400 transition-colors"
+          >
+            {isLoading ? "Starting..." : "Start Search"}
+          </button>
         </div>
       </div>
     </div>

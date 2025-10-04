@@ -210,7 +210,37 @@ export default function AccountSettingsPage() {
       }
       const supabase = getAuthenticatedClient(token);
 
-      // Get account number for webhook call
+      // STEP 1: Save all field changes before generating profile
+      // Create concatenated business address in email_site format: "Street. City, State Zip"
+      let concatenatedAddress = '';
+      if (businessStreet && businessCity && businessState && businessZip) {
+        concatenatedAddress = `${businessStreet.trim()}. ${businessCity.trim()}, ${businessState.trim()} ${businessZip.trim()}`;
+      }
+
+      const { error: saveError } = await supabase
+        .from('user_accounts')
+        .update({
+          user_firstname: firstName.trim() || null,
+          user_lastname: lastName.trim() || null,
+          user_phone: phoneNumber.trim() || null,
+          business_name: businessName.trim() || null,
+          business_address: concatenatedAddress || null,
+          business_url: businessUrl.trim() || null,
+          business_profile: businessProfileText.trim() || null
+        })
+        .eq('clerk_id', userId);
+
+      if (saveError) {
+        console.error('Error saving profile before generation:', saveError);
+        setError('Failed to save changes. Please try again.');
+        setIsLoading(false);
+        return;
+      }
+
+      // Update the business address state to reflect saved value
+      setBusinessAddress(concatenatedAddress);
+
+      // STEP 2: Get account number for webhook call
       const { data: accountData, error: accountError } = await supabase
         .from('user_accounts')
         .select('account_number')
@@ -232,7 +262,7 @@ export default function AccountSettingsPage() {
         return;
       }
 
-      // Call the profile generation webhook
+      // STEP 3: Call the profile generation webhook
       const webhookUrl = 'https://blackfish.app.n8n.cloud/webhook/81a5d1ac-c5c5-4cda-8baf-9da9d7729ee6';
       const params = new URLSearchParams({
         account_number: accountData.account_number,
@@ -253,7 +283,7 @@ export default function AccountSettingsPage() {
         throw new Error(`Profile generation failed (${response.status}). Please try again or contact support.`);
       }
 
-      setMessage('Profile generation started! Please wait while we analyze your website and generate your business profile...');
+      setMessage('Changes saved! Profile generation started! Please wait while we analyze your website and generate your business profile...');
 
       // Refresh the business profile after webhook
       setTimeout(async () => {

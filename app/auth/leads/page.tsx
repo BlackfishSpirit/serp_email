@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { EmailSettingsModal } from "@/components/email-settings-modal";
 
 interface SerpLead {
   id?: string;
@@ -45,6 +46,9 @@ export default function LeadsPage() {
   const [selectedCategories, setSelectedCategories] = useState<Set<string>>(new Set());
   const [customCategory, setCustomCategory] = useState("");
   const [customCategoryError, setCustomCategoryError] = useState("");
+
+  // Email settings modal state
+  const [emailSettingsModalOpen, setEmailSettingsModalOpen] = useState(false);
 
   useEffect(() => {
     if (isLoaded && !isSignedIn) {
@@ -461,12 +465,22 @@ export default function LeadsPage() {
     setSelectedCategories(newSelection);
   };
 
-  const handleGenerateEmails = async () => {
+  const handleGenerateEmails = () => {
     if (selectedLeads.size === 0) {
       alert('Please select leads first');
       return;
     }
 
+    if (!userAccountId) {
+      alert('User account not loaded');
+      return;
+    }
+
+    // Open the email settings modal
+    setEmailSettingsModalOpen(true);
+  };
+
+  const triggerEmailGeneration = async () => {
     if (!userAccountId) {
       alert('User account not loaded');
       return;
@@ -842,6 +856,14 @@ export default function LeadsPage() {
             </DialogFooter>
           </DialogContent>
         </Dialog>
+
+        {/* Email Settings Modal */}
+        <EmailSettingsModal
+          open={emailSettingsModalOpen}
+          onOpenChange={setEmailSettingsModalOpen}
+          onContinue={triggerEmailGeneration}
+          userAccountId={userAccountId}
+        />
       </div>
     </div>
   );
