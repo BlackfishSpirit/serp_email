@@ -611,14 +611,20 @@ export default function LeadsPage() {
                 <label className="flex items-center gap-2">
                   <Checkbox
                     checked={showWithoutEmails}
-                    onCheckedChange={(checked) => setShowWithoutEmails(checked as boolean)}
+                    onCheckedChange={(checked) => {
+                      setShowWithoutEmails(checked as boolean);
+                      setSelectedLeads(new Set());
+                    }}
                   />
                   <span className="text-sm text-gray-600">Show leads without emails</span>
                 </label>
                 <label className="flex items-center gap-2">
                   <Checkbox
                     checked={showEmailedLeads}
-                    onCheckedChange={(checked) => setShowEmailedLeads(checked as boolean)}
+                    onCheckedChange={(checked) => {
+                      setShowEmailedLeads(checked as boolean);
+                      setSelectedLeads(new Set());
+                    }}
                   />
                   <span className="text-sm text-gray-600">Show already emailed leads</span>
                 </label>
@@ -627,7 +633,10 @@ export default function LeadsPage() {
             <label className="flex items-center gap-2">
               <Checkbox
                 checked={showExcludedLeads}
-                onCheckedChange={(checked) => setShowExcludedLeads(checked as boolean)}
+                onCheckedChange={(checked) => {
+                  setShowExcludedLeads(checked as boolean);
+                  setSelectedLeads(new Set());
+                }}
               />
               <span className="text-sm text-gray-600">Show excluded leads</span>
             </label>

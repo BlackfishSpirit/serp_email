@@ -277,7 +277,7 @@ export function EmailSettingsModal({ open, onOpenChange, onContinue, userAccount
           </Button>
           <Button
             onClick={handleContinue}
-            disabled={isSaving || isLoading}
+            disabled={isSaving || isLoading || !emailCurrentGoal.trim()}
             className="bg-brand-500 hover:bg-brand-600 text-white"
           >
             {isSaving ? 'Saving...' : 'Generate Emails'}

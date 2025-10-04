@@ -17,6 +17,7 @@ interface EmailDraft {
   intro_subject?: string;
   intro_message?: string;
   created_at?: string;
+  exported?: string;
   // Fields from serp_leads_v2
   business_name?: string;
   address?: string;
@@ -36,6 +37,7 @@ export default function EmailDraftsPage() {
   const [exportData, setExportData] = useState<{csvContent: string, filename: string} | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [showExportedOnly, setShowExportedOnly] = useState(false);
   const recordsPerPage = 20;
 
   useEffect(() => {
@@ -50,7 +52,7 @@ export default function EmailDraftsPage() {
     if (userAccountId) {
       loadEmailDrafts();
     }
-  }, [userAccountId, currentPage]);
+  }, [userAccountId, currentPage, showExportedOnly]);
 
   const fetchAccountNumber = async () => {
     if (!userId) return;
@@ -97,11 +99,19 @@ export default function EmailDraftsPage() {
       }
       const supabase = getAuthenticatedClient(token);
 
-      // Get total count
-      const { count, error: countError } = await supabase
+      // Get total count with filter
+      let countQuery = supabase
         .from('email_drafts')
         .select('*', { count: 'exact', head: true })
         .eq('user_id', userAccountId);
+
+      if (showExportedOnly) {
+        countQuery = countQuery.not('exported', 'is', null);
+      } else {
+        countQuery = countQuery.is('exported', null);
+      }
+
+      const { count, error: countError } = await countQuery;
 
       if (countError) {
         console.error('Error getting record count:', countError);
@@ -119,12 +129,20 @@ export default function EmailDraftsPage() {
       const from = (currentPage - 1) * recordsPerPage;
       const to = from + recordsPerPage - 1;
 
-      const { data, error: fetchError } = await supabase
+      let dataQuery = supabase
         .from('email_drafts')
-        .select('id, lead_id, user_id, intro_goal, intro_date, intro_subject, intro_message, created_at')
-        .eq('user_id', userAccountId)
-        .order('created_at', { ascending: false })
-        .range(from, to);
+        .select('id, lead_id, user_id, intro_goal, intro_date, intro_subject, intro_message, created_at, exported')
+        .eq('user_id', userAccountId);
+
+      if (showExportedOnly) {
+        dataQuery = dataQuery.not('exported', 'is', null).order('exported', { ascending: false });
+      } else {
+        dataQuery = dataQuery.is('exported', null).order('created_at', { ascending: false });
+      }
+
+      dataQuery = dataQuery.range(from, to);
+
+      const { data, error: fetchError } = await dataQuery;
 
       if (fetchError) {
         console.error('Error loading email drafts:', fetchError);
@@ -280,7 +298,7 @@ export default function EmailDraftsPage() {
     setExportData({ csvContent, filename });
   };
 
-  const handleDownloadCSV = () => {
+  const handleDownloadCSV = async () => {
     if (!exportData) return;
 
     // Add UTF-8 BOM (Byte Order Mark) to help Excel detect UTF-8 encoding
@@ -322,9 +340,28 @@ export default function EmailDraftsPage() {
       }, 10);
     }
 
+    // Update exported timestamp for selected drafts
+    try {
+      const token = await getToken({ template: 'supabase' });
+      if (token) {
+        const supabase = getAuthenticatedClient(token);
+        const now = new Date().toISOString();
+
+        await supabase
+          .from('email_drafts')
+          .update({ exported: now })
+          .in('id', Array.from(selectedDrafts));
+      }
+    } catch (error) {
+      console.error('Error updating exported timestamp:', error);
+    }
+
     // Clear export data and selection after download
     setExportData(null);
     clearSelection();
+
+    // Reload to reflect changes
+    await loadEmailDrafts();
   };
 
   const handleDeleteSelected = () => {
@@ -413,6 +450,25 @@ export default function EmailDraftsPage() {
           {error}
         </div>
       )}
+
+      {/* Filter Controls */}
+      <div className="flex items-center space-x-2">
+        <Checkbox
+          id="show-exported-only"
+          checked={showExportedOnly}
+          onCheckedChange={(checked) => {
+            setShowExportedOnly(checked === true);
+            setCurrentPage(1);
+            setSelectedDrafts(new Set());
+          }}
+        />
+        <label
+          htmlFor="show-exported-only"
+          className="text-sm font-medium text-gray-700 cursor-pointer"
+        >
+          Show exported emails only
+        </label>
+      </div>
 
       {/* Selection Controls */}
       {emailDrafts.length > 0 && (
