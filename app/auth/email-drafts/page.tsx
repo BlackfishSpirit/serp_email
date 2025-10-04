@@ -500,13 +500,20 @@ export default function EmailDraftsPage() {
                   >
                     Export Selected Drafts
                   </Button>
-                  <Button
-                    onClick={handleDeleteSelected}
-                    className="bg-red-600 hover:bg-red-700 text-white"
-                    size="sm"
-                  >
-                    Delete Selected
-                  </Button>
+                  {!showExportedOnly && (
+                    <Button
+                      onClick={handleDeleteSelected}
+                      className="bg-red-600 hover:bg-red-700 text-white"
+                      size="sm"
+                    >
+                      Delete Selected
+                    </Button>
+                  )}
+                  {showExportedOnly && (
+                    <p className="text-sm text-gray-600">
+                      Exported emails will be automatically deleted after 30 days. They can be exported again in that time.
+                    </p>
+                  )}
                 </>
               )}
               {exportData && (
