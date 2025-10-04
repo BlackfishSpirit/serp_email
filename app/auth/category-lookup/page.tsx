@@ -140,9 +140,9 @@ export default function CategoryLookupPage() {
   const handleSaveAndReturn = async () => {
     const success = await saveSelectedCategories();
     if (success) {
-      setMessage('Categories saved successfully! Returning to dashboard...');
+      setMessage('Categories saved successfully! Returning to SERP settings...');
       setTimeout(() => {
-        window.location.href = "/auth";
+        window.location.href = "/auth/serp-settings";
       }, 1500);
     }
   };

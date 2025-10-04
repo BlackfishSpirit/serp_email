@@ -661,7 +661,7 @@ export default function LeadsPage() {
                   disabled={selectedLeads.size === 0 || isLoading}
                   className="bg-brand-500 hover:bg-brand-600 text-white"
                 >
-                  Verify Emails
+                  Generate Emails
                 </Button>
               </div>
             </>
