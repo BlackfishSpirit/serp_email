@@ -178,7 +178,11 @@ export default function LocationLookupPage() {
       } else {
         // Combine existing and new codes
         const existingCodes = currentLocations.split(',').map(code => code.trim()).filter(code => code);
-        const allCodes = [...existingCodes, ...selectedCodes];
+
+        // Convert selected codes to strings and trim them
+        const normalizedSelectedCodes = selectedCodes.map(code => String(code).trim());
+
+        const allCodes = [...existingCodes, ...normalizedSelectedCodes];
 
         // Remove duplicates while preserving order of first occurrence
         const uniqueCodes = Array.from(new Set(allCodes));

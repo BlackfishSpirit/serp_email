@@ -198,7 +198,11 @@ export default function CategoryLookupPage() {
       } else {
         // Combine existing and new categories
         const existingCategories = currentCategories.split(',').map(cat => cat.trim()).filter(cat => cat);
-        const allCategories = [...existingCategories, ...selectedNames];
+
+        // Normalize selected names to strings and trim them
+        const normalizedSelectedNames = selectedNames.map(name => String(name).trim());
+
+        const allCategories = [...existingCategories, ...normalizedSelectedNames];
 
         // Remove duplicates while preserving order of first occurrence
         const uniqueCategories = Array.from(new Set(allCategories));

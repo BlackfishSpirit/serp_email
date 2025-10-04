@@ -280,7 +280,7 @@ export function EmailSettingsModal({ open, onOpenChange, onContinue, userAccount
             disabled={isSaving || isLoading}
             className="bg-brand-500 hover:bg-brand-600 text-white"
           >
-            {isSaving ? 'Saving...' : 'Continue'}
+            {isSaving ? 'Saving...' : 'Generate Emails'}
           </Button>
         </DialogFooter>
       </DialogContent>
