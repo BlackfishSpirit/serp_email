@@ -743,7 +743,7 @@ export default function SerpSettingsPage() {
             disabled={isLoading}
             className="rounded-lg bg-blue-600 px-8 py-3 text-white font-medium hover:bg-blue-700 disabled:bg-gray-400 transition-colors"
           >
-            {isLoading ? "Starting..." : "Start Search"}
+            {isLoading ? "Starting..." : "Confirm Searches"}
           </button>
         </div>
 

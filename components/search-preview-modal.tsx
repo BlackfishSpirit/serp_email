@@ -17,6 +17,7 @@ interface SearchPreviewModalProps {
 
 interface SearchStatus {
   locationCode: string;
+  locationName: string;
   newKeywords: string[];
   repeatedKeywords: string[];
 }
@@ -56,6 +57,15 @@ export function SearchPreviewModal({
 
       // Query user_searches for each location code
       for (const locationCode of locationCodeList) {
+        // Get location name from google_locations table
+        const { data: locationData } = await supabase
+          .from('google_locations')
+          .select('location_name')
+          .eq('location_code', locationCode)
+          .single();
+
+        const locationName = locationData?.location_name || 'Unknown Location';
+
         const { data: searchRecord } = await supabase
           .from('user_searches')
           .select('used_keywords')
@@ -85,6 +95,7 @@ export function SearchPreviewModal({
 
         statuses.push({
           locationCode,
+          locationName,
           newKeywords,
           repeatedKeywords
         });
@@ -136,8 +147,9 @@ export function SearchPreviewModal({
             <div className="space-y-3">
               {searchStatuses.map((status) => (
                 <div key={status.locationCode} className="border border-gray-200 rounded-lg p-4">
-                  <div className="font-medium text-gray-900 mb-2">
-                    Location Code: {status.locationCode}
+                  <div className="font-medium text-gray-900 mb-2 flex items-center justify-between">
+                    <span>{status.locationCode}</span>
+                    <span className="text-sm font-normal text-gray-600">{status.locationName}</span>
                   </div>
 
                   {status.newKeywords.length > 0 && (
@@ -171,7 +183,7 @@ export function SearchPreviewModal({
                     <span className="font-medium">Repeat Searches</span>
                     <br />
                     <span className="text-gray-600">
-                      Check this box to re-run the {totalRepeated} repeated search{totalRepeated !== 1 ? 'es' : ''}. Previous keyword/location combinations are saved and repeating a search may not yield new results.
+                      Check this box to re-run the {totalRepeated} repeated search{totalRepeated !== 1 ? 'es' : ''}. Repeating a search may not yield new results.
                     </span>
                   </label>
                 </div>
@@ -191,7 +203,7 @@ export function SearchPreviewModal({
             onClick={handleContinue}
             disabled={isLoading}
           >
-            Continue
+            {totalSearches === 1 ? 'Start Search' : 'Start Searches'}
           </Button>
         </DialogFooter>
       </DialogContent>
