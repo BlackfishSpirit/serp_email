@@ -28,6 +28,9 @@ export default function AccountSettingsPage() {
   const [businessUrl, setBusinessUrl] = useState("");
   const [businessProfileText, setBusinessProfileText] = useState("");
 
+  // Email settings state
+  const [emailSignature, setEmailSignature] = useState("");
+
   useEffect(() => {
     if (isLoaded && !isSignedIn) {
       window.location.href = "/sign-in";
@@ -98,6 +101,9 @@ export default function AccountSettingsPage() {
         setBusinessUrl(data.business_url || "");
         setBusinessProfileText(data.business_profile || "");
 
+        // Populate email settings
+        setEmailSignature(data.email_sig || "");
+
         // Handle business address - parse if stored as concatenated string
         if (data.business_address) {
           setBusinessAddress(data.business_address);
@@ -155,7 +161,8 @@ export default function AccountSettingsPage() {
           business_name: businessName.trim() || null,
           business_address: concatenatedAddress || null,
           business_url: businessUrl.trim() || null,
-          business_profile: businessProfileText.trim() || null
+          business_profile: businessProfileText.trim() || null,
+          email_sig: emailSignature.trim() || null
         })
         .eq('clerk_id', userId);
 
@@ -487,6 +494,27 @@ export default function AccountSettingsPage() {
 
         <div>
           <h3 className="text-lg font-semibold text-gray-900 mb-4 border-b border-gray-200 pb-2">
+            Email Signature
+          </h3>
+          <div className="space-y-4">
+            <div>
+              <textarea
+                id="emailSignature"
+                value={emailSignature}
+                onChange={(e) => setEmailSignature(e.target.value)}
+                rows={6}
+                placeholder={"Best regards,\nJohn Smith\nABC Marketing Solutions\n(555) 123-4567\njohn@abcmarketing.com"}
+                className="w-full rounded-lg border border-gray-300 px-4 py-3 focus:border-brand-500 focus:ring-brand-500"
+              />
+              <p className="text-sm text-gray-500 mt-1">
+                This signature will be used when generating emails for leads. Only required if you want to include a signature in your generated emails.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <h3 className="text-lg font-semibold text-gray-900 mb-4 border-b border-gray-200 pb-2">
             Business
           </h3>
           <div className="space-y-4">
@@ -597,22 +625,19 @@ export default function AccountSettingsPage() {
 
       {/* Business Profile Generator */}
       <div className="border-t border-gray-200 pt-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4 border-b border-gray-200 pb-2">
+        <h3 className="text-lg font-semibold text-gray-900 mb-4">
           Business Profile Generator
         </h3>
         <div className="space-y-4">
-          <p className="text-sm text-gray-600">
-            <strong>Business URL:</strong> {businessUrl || "Enter URL above"}
-          </p>
           <textarea
             value={businessProfileText}
             onChange={(e) => setBusinessProfileText(e.target.value)}
-            rows={6}
+            rows={9}
             placeholder="Your generated business profile will appear here..."
             className="w-full rounded-lg border border-gray-300 px-4 py-3 focus:border-brand-500 focus:ring-brand-500"
           />
           <p className="text-sm text-gray-500">
-            Edit your business profile text and save changes as needed.
+            Generate a new profile based on information from the URL above, or enter your own business profile text. Edit and save changes as needed.
           </p>
           <div className="flex space-x-4">
             <button

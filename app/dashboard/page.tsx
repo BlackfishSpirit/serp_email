@@ -59,13 +59,6 @@ export default async function DashboardPage() {
           href: "/auth/email-drafts",
           icon: DocumentTextIcon,
           color: "bg-indigo-500"
-        },
-        {
-          name: "Email Settings",
-          description: "Configure email preferences and templates",
-          href: "/auth/email-settings",
-          icon: EnvelopeIcon,
-          color: "bg-red-500"
         }
       ]
     },
