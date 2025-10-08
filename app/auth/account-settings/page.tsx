@@ -29,6 +29,7 @@ export default function AccountSettingsPage() {
   const [businessProfileText, setBusinessProfileText] = useState("");
 
   // Email settings state
+  const [emailCurrentGoal, setEmailCurrentGoal] = useState("");
   const [emailSignature, setEmailSignature] = useState("");
 
   useEffect(() => {
@@ -102,6 +103,7 @@ export default function AccountSettingsPage() {
         setBusinessProfileText(data.business_profile || "");
 
         // Populate email settings
+        setEmailCurrentGoal(data.email_current_goal || "");
         setEmailSignature(data.email_sig || "");
 
         // Handle business address - parse if stored as concatenated string
@@ -162,6 +164,7 @@ export default function AccountSettingsPage() {
           business_address: concatenatedAddress || null,
           business_url: businessUrl.trim() || null,
           business_profile: businessProfileText.trim() || null,
+          email_current_goal: emailCurrentGoal.trim() || null,
           email_sig: emailSignature.trim() || null
         })
         .eq('clerk_id', userId);
@@ -494,10 +497,38 @@ export default function AccountSettingsPage() {
 
         <div>
           <h3 className="text-lg font-semibold text-gray-900 mb-4 border-b border-gray-200 pb-2">
-            Email Signature
+            Email
           </h3>
           <div className="space-y-4">
             <div>
+              <label htmlFor="emailCurrentGoal" className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
+                Current Goal
+                <span
+                  className="inline-flex items-center justify-center w-4 h-4 text-xs text-gray-500 border border-gray-400 rounded-full cursor-help hover:bg-gray-100 hover:text-gray-700 transition-colors"
+                  title="This defines the current goal of the emails you will generate with this tool. Include products or services you want potential customers to know about."
+                >
+                  i
+                </span>
+              </label>
+              <textarea
+                id="emailCurrentGoal"
+                value={emailCurrentGoal}
+                onChange={(e) => setEmailCurrentGoal(e.target.value)}
+                rows={4}
+                placeholder="Define the current goal of the emails you will generate with this tool. Include products or services you want potential customers to know about."
+                className="w-full rounded-lg border border-gray-300 px-4 py-3 focus:border-brand-500 focus:ring-brand-500"
+              />
+            </div>
+            <div>
+              <label htmlFor="emailSignature" className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
+                Signature
+                <span
+                  className="inline-flex items-center justify-center w-4 h-4 text-xs text-gray-500 border border-gray-400 rounded-full cursor-help hover:bg-gray-100 hover:text-gray-700 transition-colors"
+                  title="This signature will be used when generating emails for leads. Only required if you want to include a signature in your generated emails."
+                >
+                  i
+                </span>
+              </label>
               <textarea
                 id="emailSignature"
                 value={emailSignature}
@@ -506,9 +537,6 @@ export default function AccountSettingsPage() {
                 placeholder={"Best regards,\nJohn Smith\nABC Marketing Solutions\n(555) 123-4567\njohn@abcmarketing.com"}
                 className="w-full rounded-lg border border-gray-300 px-4 py-3 focus:border-brand-500 focus:ring-brand-500"
               />
-              <p className="text-sm text-gray-500 mt-1">
-                This signature will be used when generating emails for leads. Only required if you want to include a signature in your generated emails.
-              </p>
             </div>
           </div>
         </div>
