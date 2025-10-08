@@ -255,6 +255,7 @@ export default function EmailDraftsPage() {
 
   const clearSelection = () => {
     setSelectedDrafts(new Set());
+    setExportData(null);
   };
 
   const handleExportSelected = () => {
@@ -340,17 +341,31 @@ export default function EmailDraftsPage() {
       }, 10);
     }
 
-    // Update exported timestamp for selected drafts
+    // Update exported timestamp for selected drafts and emailed timestamp for user_leads
     try {
       const token = await getToken({ template: 'supabase' });
       if (token) {
         const supabase = getAuthenticatedClient(token);
         const now = new Date().toISOString();
 
+        // Update email_drafts exported timestamp
         await supabase
           .from('email_drafts')
           .update({ exported: now })
           .in('id', Array.from(selectedDrafts));
+
+        // Get lead IDs from selected drafts
+        const selectedDraftData = emailDrafts.filter(draft => selectedDrafts.has(draft.id));
+        const leadIds = selectedDraftData.map(draft => draft.lead_id).filter(Boolean);
+
+        // Update user_leads emailed timestamp
+        if (leadIds.length > 0) {
+          await supabase
+            .from('user_leads')
+            .update({ emailed: now })
+            .in('lead_id', leadIds)
+            .eq('user_id', userAccountId);
+        }
       }
     } catch (error) {
       console.error('Error updating exported timestamp:', error);
@@ -454,7 +469,7 @@ export default function EmailDraftsPage() {
       {/* Filter Controls */}
       <div className="flex items-center space-x-2">
         <Checkbox
-          id="show-exported-only"
+          id="show-archived-only"
           checked={showExportedOnly}
           onCheckedChange={(checked) => {
             setShowExportedOnly(checked === true);
@@ -463,10 +478,10 @@ export default function EmailDraftsPage() {
           }}
         />
         <label
-          htmlFor="show-exported-only"
+          htmlFor="show-archived-only"
           className="text-sm font-medium text-gray-700 cursor-pointer"
         >
-          Show exported emails only
+          Show archived emails only
         </label>
       </div>
 
@@ -498,7 +513,7 @@ export default function EmailDraftsPage() {
                     className="bg-green-600 hover:bg-green-700 text-white"
                     size="sm"
                   >
-                    Export Selected Drafts
+                    Export and Archive Selected Emails
                   </Button>
                   {!showExportedOnly && (
                     <Button
@@ -511,7 +526,7 @@ export default function EmailDraftsPage() {
                   )}
                   {showExportedOnly && (
                     <p className="text-sm text-gray-600">
-                      Exported emails will be automatically deleted after 30 days. They can be exported again in that time.
+                      Archived emails will be automatically deleted after 30 days. They can be exported again in that time.
                     </p>
                   )}
                 </>
@@ -523,7 +538,7 @@ export default function EmailDraftsPage() {
                     className="bg-blue-600 hover:bg-blue-700 text-white"
                     size="sm"
                   >
-                    Download CSV ({exportData.filename})
+                    Download and Archive
                   </Button>
                   <Button
                     onClick={() => setExportData(null)}

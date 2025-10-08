@@ -122,7 +122,7 @@ export default function LeadsPage() {
       // Step 1: Get ALL user_leads that match our filters (no pagination yet)
       let allUserLeadsQuery = supabase
         .from('user_leads')
-        .select('id, lead_id, excluded')
+        .select('id, lead_id, excluded, emailed')
         .eq('user_id', userAccountId);
 
       // Filter by excluded status
@@ -171,7 +171,7 @@ export default function LeadsPage() {
           .map(lead => lead.id)
       );
 
-      // Step 3: Get emailed lead IDs if filtering them out
+      // Step 3: Get emailed lead IDs from email_drafts if filtering them out
       let emailedLeadIds: string[] = [];
       if (!showEmailedLeads && !showExcludedLeads && userAccountId) {
         const { data: draftIds } = await supabase
@@ -184,9 +184,12 @@ export default function LeadsPage() {
 
       // Step 4: Apply all filters to get final filtered list
       let filteredUserLeads = allUserLeadsData.filter(ul => {
-        // Filter out emailed leads if needed
-        if (!showExcludedLeads && !showEmailedLeads && emailedLeadIds.includes(ul.lead_id)) {
-          return false;
+        // Filter out emailed leads if needed (check both emailed column and email_drafts table)
+        if (!showExcludedLeads && !showEmailedLeads) {
+          // Filter out if emailed column is not null OR lead is in email_drafts
+          if (ul.emailed !== null || emailedLeadIds.includes(ul.lead_id)) {
+            return false;
+          }
         }
 
         // Filter out leads without emails if needed
