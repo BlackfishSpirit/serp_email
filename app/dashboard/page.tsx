@@ -286,7 +286,7 @@ export default function DashboardPage() {
                 <span className="font-semibold text-gray-900">{stats.leadsThisWeek}</span>
               </div>
             </div>
-            <Link href="/auth/serp-settings">
+            <Link href="/auth/lead-generation">
               <Button className="w-full" disabled={!stats.accountSettingsComplete}>
                 Start New Search
               </Button>
