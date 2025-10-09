@@ -12,6 +12,7 @@ interface DashboardStats {
   emailDrafts: number;
   exportedEmails: number;
   leadsThisWeek: number;
+  locationsSearched: number;
   accountSettingsComplete: boolean;
 }
 
@@ -25,6 +26,7 @@ export default function DashboardPage() {
     emailDrafts: 0,
     exportedEmails: 0,
     leadsThisWeek: 0,
+    locationsSearched: 0,
     accountSettingsComplete: false,
   });
   const [userAccountId, setUserAccountId] = useState<number | null>(null);
@@ -51,7 +53,7 @@ export default function DashboardPage() {
       // Get user account
       const { data: userData, error: userError } = await supabase
         .from('user_accounts')
-        .select('id, user_firstname, user_lastname, business_name, business_url, email_current_goal, email_sig')
+        .select('id, user_firstname, user_lastname, business_name, business_url, business_address, business_profile, email_current_goal, email_sig')
         .eq('clerk_id', userId)
         .single();
 
@@ -71,7 +73,9 @@ export default function DashboardPage() {
         userData.user_firstname &&
         userData.user_lastname &&
         userData.business_name &&
-        userData.business_url
+        userData.business_url &&
+        userData.business_address &&
+        userData.business_profile
       );
 
       // Get total leads count
@@ -110,12 +114,12 @@ export default function DashboardPage() {
         .eq('user_id', userData.id)
         .is('exported', null);
 
-      // Get exported emails count
+      // Get exported emails count (user_leads where emailed is not null)
       const { count: exportedEmailsCount } = await supabase
-        .from('email_drafts')
+        .from('user_leads')
         .select('*', { count: 'exact', head: true })
         .eq('user_id', userData.id)
-        .not('exported', 'is', null);
+        .not('emailed', 'is', null);
 
       // Get leads added this week
       const oneWeekAgo = new Date();
@@ -127,12 +131,23 @@ export default function DashboardPage() {
         .eq('user_id', userData.id)
         .gte('created_at', oneWeekAgo.toISOString());
 
+      // Get locations searched count (distinct location_codes in user_searches)
+      const { data: searchData } = await supabase
+        .from('user_searches')
+        .select('search_location_code')
+        .eq('user_id', userData.id);
+
+      const locationsSearchedCount = searchData
+        ? new Set(searchData.map(s => s.search_location_code)).size
+        : 0;
+
       setStats({
         totalLeads: totalLeadsCount || 0,
         unreviewedLeads: unreviewedCount,
         emailDrafts: emailDraftsCount || 0,
         exportedEmails: exportedEmailsCount || 0,
         leadsThisWeek: leadsThisWeekCount || 0,
+        locationsSearched: locationsSearchedCount,
         accountSettingsComplete,
       });
     } catch (error) {
@@ -263,11 +278,11 @@ export default function DashboardPage() {
             </div>
             <div className="space-y-2 mb-4">
               <div className="flex justify-between text-sm">
-                <span className="text-gray-600">Total Leads</span>
-                <span className="font-semibold text-gray-900">{stats.totalLeads}</span>
+                <span className="text-gray-600">Locations Searched</span>
+                <span className="font-semibold text-gray-900">{stats.locationsSearched}</span>
               </div>
               <div className="flex justify-between text-sm">
-                <span className="text-gray-600">This Week</span>
+                <span className="text-gray-600">New Leads This Week</span>
                 <span className="font-semibold text-gray-900">{stats.leadsThisWeek}</span>
               </div>
             </div>
@@ -290,12 +305,12 @@ export default function DashboardPage() {
             </div>
             <div className="space-y-2 mb-4">
               <div className="flex justify-between text-sm">
-                <span className="text-gray-600">Ready to Review</span>
+                <span className="text-gray-600">Ready to Email</span>
                 <span className="font-semibold text-gray-900">{stats.unreviewedLeads}</span>
               </div>
-              <div className="flex justify-between text-sm invisible">
-                <span className="text-gray-600">Placeholder</span>
-                <span className="font-semibold text-gray-900">0</span>
+              <div className="flex justify-between text-sm">
+                <span className="text-gray-600">Total Leads</span>
+                <span className="font-semibold text-gray-900">{stats.totalLeads}</span>
               </div>
             </div>
             <Link href="/auth/leads">

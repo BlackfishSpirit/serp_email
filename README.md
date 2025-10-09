@@ -102,13 +102,11 @@ The Next.js App Router is organized as follows:
 
 ### **Authentication Pages** (`/auth`)
 - `/auth` - Main auth page with login/signup forms and SERP settings
-- `/auth/account-settings` - User account management
+- `/auth/account-settings` - User account management (includes profile, business, and email configuration)
 - `/auth/category-lookup` - Browse business categories
 - `/auth/email-drafts` - Email draft management
-- `/auth/email-settings` - Email configuration
 - `/auth/leads` - Lead management dashboard
 - `/auth/location-lookup` - Location code browser
-- `/auth/profile-setup` - Initial profile configuration
 
 ### **Clerk Auth Routes** (`/(auth)`)
 - `/(auth)/sign-in/[[...rest]]` - Clerk sign-in pages

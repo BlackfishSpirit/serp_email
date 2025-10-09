@@ -413,12 +413,6 @@ export default function AccountSettingsPage() {
         <h2 className="text-2xl font-bold text-gray-900">Account Settings</h2>
         <div className="flex items-center space-x-4">
           <Link
-            href="/auth/email-settings"
-            className="text-brand-600 hover:text-brand-700 font-medium"
-          >
-            Email Settings
-          </Link>
-          <Link
             href="/auth"
             className="text-brand-600 hover:text-brand-700 font-medium"
           >
@@ -670,7 +664,7 @@ export default function AccountSettingsPage() {
           <div className="flex space-x-4">
             <button
               onClick={handleGenerateProfile}
-              disabled={isLoading}
+              disabled={isLoading || !businessUrl || !businessAddress}
               className="rounded-lg bg-green-600 px-6 py-2 text-white font-medium hover:bg-green-700 disabled:bg-gray-400 transition-colors"
             >
               {isLoading ? "Generating..." : "Generate from URL"}
