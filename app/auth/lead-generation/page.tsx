@@ -6,6 +6,7 @@ import { useAuth, useUser } from '@clerk/nextjs';
 import { getAuthenticatedClient } from "@/lib/supabase/client";
 import { InformationCircleIcon } from '@heroicons/react/24/outline';
 import { SearchPreviewModal } from "@/components/search-preview-modal";
+import { NavBar } from "../_components/nav-bar";
 
 export default function SerpSettingsPage() {
   const { isLoaded, isSignedIn, userId, getToken } = useAuth();
@@ -490,9 +491,11 @@ export default function SerpSettingsPage() {
   }
 
   return (
-    <div className="space-y-8">
-      {/* Header */}
-      <div className="flex items-center justify-between border-b border-gray-200 pb-6">
+    <div>
+      <NavBar />
+      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+        {/* Header */}
+        <div className="flex items-center justify-between border-b border-gray-200 pb-6">
         <div className="flex items-center space-x-4">
           <h2 className="text-3xl font-bold text-gray-900">Lead Generation</h2>
           {isSaving && (
@@ -753,6 +756,7 @@ export default function SerpSettingsPage() {
           locationCodes={serpLocations}
           userAccountId={accountNumber || 0}
         />
+      </div>
       </div>
     </div>
   );

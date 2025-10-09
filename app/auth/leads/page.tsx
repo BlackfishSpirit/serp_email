@@ -9,6 +9,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { EmailSettingsModal } from "@/components/email-settings-modal";
+import { NavBar } from "../_components/nav-bar";
 
 interface SerpLead {
   id?: string;
@@ -576,8 +577,10 @@ export default function LeadsPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 p-8">
-      <div className="mx-auto max-w-7xl">
+    <div>
+      <NavBar />
+      <div className="min-h-screen bg-gray-50 p-8">
+        <div className="mx-auto max-w-7xl">
         {/* Success Message - Fixed Position */}
         {successMessage && (
           <div className="fixed top-4 right-4 z-50 rounded-lg bg-green-50 border border-green-200 p-4 text-green-800 shadow-lg animate-in fade-in slide-in-from-top-2 duration-300">
@@ -876,6 +879,7 @@ export default function LeadsPage() {
           onContinue={triggerEmailGeneration}
           userAccountId={userAccountId}
         />
+      </div>
       </div>
     </div>
   );

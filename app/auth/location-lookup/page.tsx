@@ -24,6 +24,7 @@ export default function LocationLookupPage() {
   interface GoogleLocation {
     location_code: string;
     location_name: string;
+    location_type: string;
   }
 
   // Check authentication on mount
@@ -55,10 +56,11 @@ export default function LocationLookupPage() {
       }
       const authenticatedSupabase = getAuthenticatedClient(token);
 
-      // Query the google_locations table from Supabase
+      // Query the google_locations table from Supabase - only show cities
       const { data, error } = await authenticatedSupabase
         .from('google_locations')
-        .select('location_code, location_name')
+        .select('location_code, location_name, location_type')
+        .eq('location_type', 'City')
         .ilike('location_name', `%${searchTerm}%`)
         .limit(50);
 
@@ -271,7 +273,7 @@ export default function LocationLookupPage() {
         <div className="flex space-x-4">
           <input
             type="text"
-            placeholder="Enter location name or code..."
+            placeholder="Enter location name..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && handleSearch()}

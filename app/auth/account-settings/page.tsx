@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import { NavBar } from "../_components/nav-bar";
 import { useAuth, useUser } from '@clerk/nextjs';
 import { supabase, getAuthenticatedClient } from "@/lib/supabase/client";
 
@@ -407,11 +408,19 @@ export default function AccountSettingsPage() {
   }
 
   return (
-    <div className="space-y-8">
-      {/* Header */}
-      <div className="flex items-center justify-between border-b border-gray-200 pb-4">
+    <div>
+      <NavBar />
+      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+        {/* Header */}
+        <div className="flex items-center justify-between border-b border-gray-200 pb-4">
         <h2 className="text-2xl font-bold text-gray-900">Account Settings</h2>
         <div className="flex items-center space-x-4">
+          <Link
+            href="/auth/email-settings"
+            className="text-brand-600 hover:text-brand-700 font-medium"
+          >
+            Email Settings
+          </Link>
           <Link
             href="/auth"
             className="text-brand-600 hover:text-brand-700 font-medium"
@@ -664,7 +673,7 @@ export default function AccountSettingsPage() {
           <div className="flex space-x-4">
             <button
               onClick={handleGenerateProfile}
-              disabled={isLoading || !businessUrl || !businessAddress}
+              disabled={isLoading}
               className="rounded-lg bg-green-600 px-6 py-2 text-white font-medium hover:bg-green-700 disabled:bg-gray-400 transition-colors"
             >
               {isLoading ? "Generating..." : "Generate from URL"}
@@ -678,6 +687,7 @@ export default function AccountSettingsPage() {
             </button>
           </div>
         </div>
+      </div>
       </div>
     </div>
   );

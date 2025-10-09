@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import { NavBar } from "../_components/nav-bar";
 import { useAuth } from '@clerk/nextjs';
 import { supabase, getAuthenticatedClient } from "@/lib/supabase/client";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -440,9 +441,11 @@ export default function EmailDraftsPage() {
   }
 
   return (
-    <div className="space-y-8">
-      {/* Header */}
-      <div className="flex items-center justify-between border-b border-gray-200 pb-4">
+    <div>
+      <NavBar />
+      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+        {/* Header */}
+        <div className="flex items-center justify-between border-b border-gray-200 pb-4">
         <h2 className="text-2xl font-bold text-gray-900">Email Drafts</h2>
         <div className="flex items-center space-x-4">
           <Link
@@ -739,6 +742,7 @@ export default function EmailDraftsPage() {
         </DialogContent>
       </Dialog>
 
+      </div>
     </div>
   );
 }
