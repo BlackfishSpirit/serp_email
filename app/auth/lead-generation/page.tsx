@@ -525,9 +525,6 @@ export default function SerpSettingsPage() {
 
       {/* Lead Search Settings */}
       <div>
-        <h3 className="text-2xl font-semibold text-gray-900 mb-6">
-          Search Configuration
-        </h3>
         <div className="rounded-lg bg-gray-50 border border-gray-200 p-6 mb-8">
           <p className="text-sm text-gray-600">
             <strong>Note:</strong> All fields can handle multiple values separated by commas with no spaces (e.g., value1,value2,value3)
