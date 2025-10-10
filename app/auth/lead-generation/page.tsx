@@ -164,14 +164,6 @@ export default function SerpSettingsPage() {
 
     setIsValidatingCodes(true);
     try {
-      // Get authenticated Supabase client with Clerk token
-      const token = await getToken({ template: 'supabase' });
-      if (!token) {
-        console.error('Failed to get Clerk token for validation');
-        return;
-      }
-      const supabase = getAuthenticatedClient(token);
-
       // Parse location codes
       const codes = serpLocations
         .split(',')
@@ -180,8 +172,32 @@ export default function SerpSettingsPage() {
 
       if (codes.length === 0) {
         setInvalidLocationCodes([]);
+        setIsValidatingCodes(false);
         return;
       }
+
+      // First, check if all codes are numeric (only digits allowed)
+      const nonNumericCodes = codes.filter(code => !/^\d+$/.test(code));
+
+      console.log('Validating location codes:', codes);
+      console.log('Non-numeric codes found:', nonNumericCodes);
+
+      if (nonNumericCodes.length > 0) {
+        // If there are non-numeric codes, mark them as invalid immediately
+        console.log('Setting invalid location codes:', nonNumericCodes);
+        setInvalidLocationCodes(nonNumericCodes);
+        setIsValidatingCodes(false);
+        return;
+      }
+
+      // Get authenticated Supabase client with Clerk token
+      const token = await getToken({ template: 'supabase' });
+      if (!token) {
+        console.error('Failed to get Clerk token for validation');
+        setIsValidatingCodes(false);
+        return;
+      }
+      const supabase = getAuthenticatedClient(token);
 
       // Query google_locations table to check which codes exist
       const { data, error } = await supabase
@@ -191,6 +207,7 @@ export default function SerpSettingsPage() {
 
       if (error) {
         console.error('Error validating location codes:', error);
+        setIsValidatingCodes(false);
         return;
       }
 
@@ -600,7 +617,7 @@ export default function SerpSettingsPage() {
                     {invalidLocationCodes.join(', ')}
                   </p>
                   <p className="text-xs text-red-600 mt-1">
-                    These codes do not exist in the Google Locations database. Please verify or remove them.
+                    Location codes must be numbers only. These codes either contain invalid characters or do not exist in the Google Locations database.
                   </p>
                 </div>
               )}
