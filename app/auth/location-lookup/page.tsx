@@ -264,7 +264,7 @@ export default function LocationLookupPage() {
       <div className="space-y-4">
         <h3 className="text-lg font-semibold text-gray-900">Search Locations</h3>
         <p className="text-sm text-gray-600">
-          Search for location codes to add to your SERP settings. Select the locations you want and choose your save option.
+          Search for location codes to add to your leads search. Select the locations you want and choose your save option.
         </p>
         <div className="flex space-x-4">
           <input
