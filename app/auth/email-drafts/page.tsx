@@ -82,9 +82,7 @@ export default function EmailDraftsPage() {
   };
 
   const loadEmailDrafts = async () => {
-    console.log('loadEmailDrafts called with userAccountId:', userAccountId);
     if (!userAccountId) {
-      console.log('No user account ID, returning early');
       return;
     }
 
@@ -164,8 +162,6 @@ export default function EmailDraftsPage() {
       let transformedData = data || [];
       if (data && data.length > 0) {
         const leadIds = data.map(draft => draft.lead_id).filter(Boolean);
-        console.log('Lead IDs from email_drafts:', leadIds);
-        console.log('Full draft data:', data);
 
         if (leadIds.length > 0) {
           const { data: leadsData, error: leadsError } = await supabase
@@ -173,22 +169,13 @@ export default function EmailDraftsPage() {
             .select('id, title, address, email')
             .in('id', leadIds);
 
-          console.log('serp_leads_v2 query result:', {
-            dataCount: leadsData?.length || 0,
-            data: leadsData,
-            error: leadsError
-          });
-
           if (leadsError) {
             console.error('Error loading lead details:', leadsError);
           } else if (leadsData && leadsData.length > 0) {
-            console.log('Successfully fetched leads data:', leadsData);
             const leadsMap = new Map(leadsData.map(lead => [lead.id, lead]));
-            console.log('Leads map keys:', Array.from(leadsMap.keys()));
 
             transformedData = data.map(draft => {
               const leadInfo = leadsMap.get(draft.lead_id);
-              console.log(`Draft ${draft.id}: lead_id="${draft.lead_id}", matched lead:`, leadInfo);
               return {
                 ...draft,
                 business_name: leadInfo?.title,
@@ -196,7 +183,6 @@ export default function EmailDraftsPage() {
                 email: leadInfo?.email
               };
             });
-            console.log('Final transformed data:', transformedData);
           }
         }
       }
@@ -273,8 +259,6 @@ export default function EmailDraftsPage() {
 
     // Use a default user business name (could be fetched from user profile in the future)
     const userBusinessName = 'Blackfish_Spirits'; // This should ideally come from user account data
-
-    console.log('Export filename will be:', `${userBusinessName}_email_drafts_${timestamp}.csv`);
 
     // Create CSV headers
     const headers = ['Business Name', 'Email', 'Subject', 'Message', 'Goal', 'Created Date'];

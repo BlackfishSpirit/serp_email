@@ -45,8 +45,6 @@ export default function LocationLookupPage() {
     setShowResults(false);
 
     try {
-      console.log('Searching for:', searchTerm);
-
       // Get authenticated Supabase client
       const token = await getToken({ template: 'supabase' });
       if (!token) {
@@ -68,8 +66,6 @@ export default function LocationLookupPage() {
         console.error('Error searching locations:', error);
         throw new Error(`Failed to search locations: ${error.message}`);
       }
-
-      console.log('Search results:', data);
 
       // Convert to our interface format
       const locationResults: LocationResult[] = (data || []).map((item: GoogleLocation) => ({

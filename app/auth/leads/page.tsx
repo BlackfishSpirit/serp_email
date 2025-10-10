@@ -84,7 +84,6 @@ export default function LeadsPage() {
       }
       const supabase = getAuthenticatedClient(token);
 
-      console.log('Fetching account for Clerk user ID:', userId);
       const { data: userData, error: userError } = await supabase
         .from('user_accounts')
         .select('id, account_number')
@@ -94,7 +93,6 @@ export default function LeadsPage() {
       if (userError) {
         console.error('Error loading user account:', userError);
       } else if (userData) {
-        console.log('Account data loaded:', userData);
         setUserAccountId(userData.id);
       }
     } catch (error) {
@@ -536,9 +534,6 @@ export default function LeadsPage() {
         }
       });
 
-      console.log('Webhook response status:', response.status);
-      console.log('Webhook response headers:', Object.fromEntries(response.headers.entries()));
-
       if (!response.ok) {
         const errorText = await response.text();
         console.error('Webhook error response:', errorText);
@@ -546,14 +541,11 @@ export default function LeadsPage() {
       }
 
       // Try to parse JSON response, but don't fail if it's not JSON
-      let result;
       const contentType = response.headers.get('content-type');
       if (contentType?.includes('application/json')) {
-        result = await response.json();
-        console.log('Webhook JSON response:', result);
+        await response.json();
       } else {
-        result = await response.text();
-        console.log('Webhook text response:', result);
+        await response.text();
       }
 
       const count = selectedLeads.size;

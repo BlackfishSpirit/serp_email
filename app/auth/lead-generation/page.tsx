@@ -103,17 +103,12 @@ export default function SerpSettingsPage() {
       const supabase = getAuthenticatedClient(token);
 
       // Get user's account number using Clerk userId
-      console.log('Fetching account for Clerk user ID:', userId);
 
       // First try to query without .single() to see if there are any records
-      console.log('About to query user_accounts table with userId:', userId);
       const { data: allData, error: checkError } = await supabase
         .from('user_accounts')
         .select('account_number, clerk_id')
         .eq('clerk_id', userId);
-
-      console.log('All matching records:', allData);
-      console.log('Check error:', checkError);
 
       if (checkError) {
         console.error('Error checking user accounts:', checkError);
@@ -128,7 +123,6 @@ export default function SerpSettingsPage() {
 
       // Use the first record found
       const userData = allData[0];
-      console.log('Account data loaded:', userData);
       setAccountNumber(userData.account_number);
       await loadSerpSettings(userId);
 
@@ -179,12 +173,8 @@ export default function SerpSettingsPage() {
       // First, check if all codes are numeric (only digits allowed)
       const nonNumericCodes = codes.filter(code => !/^\d+$/.test(code));
 
-      console.log('Validating location codes:', codes);
-      console.log('Non-numeric codes found:', nonNumericCodes);
-
       if (nonNumericCodes.length > 0) {
         // If there are non-numeric codes, mark them as invalid immediately
-        console.log('Setting invalid location codes:', nonNumericCodes);
         setInvalidLocationCodes(nonNumericCodes);
         setIsValidatingCodes(false);
         return;
@@ -264,13 +254,11 @@ export default function SerpSettingsPage() {
 
     // Wait for validation to complete if it's in progress (silently)
     if (isValidatingCodes) {
-      console.log('Cannot save: validation in progress');
       return;
     }
 
     // Check for validation errors before saving (silently skip auto-save)
     if (invalidCategoryItems.length > 0 || invalidExcludedCategoryItems.length > 0 || invalidLocationCodes.length > 0) {
-      console.log('Cannot save: validation errors exist');
       // Don't show error popup for auto-save, just silently skip
       return;
     }
@@ -292,7 +280,6 @@ export default function SerpSettingsPage() {
       const cleanedLocations = cleanCommaSeparatedValues(serpLocations);
       const cleanedStates = cleanCommaSeparatedValues(serpStates, true);
 
-      console.log('Auto-saving SERP settings for user:', userId);
       const { error } = await supabase
         .from('user_accounts')
         .update({
@@ -308,7 +295,6 @@ export default function SerpSettingsPage() {
         console.error('Error auto-saving SERP settings:', error);
         setError('Failed to save settings. Changes may be lost.');
       } else {
-        console.log('SERP settings auto-saved successfully');
         // Clear any previous errors if save was successful
         setError('');
         setMessage('Settings saved automatically');

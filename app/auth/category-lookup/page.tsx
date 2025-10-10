@@ -54,8 +54,6 @@ export default function CategoryLookupPage() {
     setShowResults(false);
 
     try {
-      console.log('Searching for categories:', searchTerm);
-
       // Get authenticated Supabase client
       const token = await getToken({ template: 'supabase' });
       if (!token) {
@@ -76,9 +74,6 @@ export default function CategoryLookupPage() {
         console.error('Error searching categories:', error);
         throw new Error(`Failed to search categories: ${error.message}`);
       }
-
-      console.log('Search results:', data);
-      console.log('First result structure:', data?.[0]);
 
       // Convert to our interface format - we'll determine the actual column names from the data
       const categoryResults: CategoryResult[] = (data || []).map((item: any) => {
