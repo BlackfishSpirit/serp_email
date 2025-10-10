@@ -1,0 +1,16 @@
+# Configuration for delete-old-email-drafts edge function
+
+# Function metadata
+[function]
+name = "delete-old-email-drafts"
+description = "Deletes email drafts that were exported more than 30 days ago"
+
+# Environment variables (these are automatically set by Supabase)
+# You don't need to configure these manually
+[env]
+# SUPABASE_URL = "https://your-project.supabase.co"
+# SUPABASE_SERVICE_ROLE_KEY = "your-service-role-key"
+
+# Optional: Set custom timeout (in seconds)
+# Default is 60 seconds
+# timeout = 120
