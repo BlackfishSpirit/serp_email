@@ -32,7 +32,7 @@
     "features:spec": "python .feature-tracking/scripts/spec-kit-integration.py create-from-spec"
   },
   "dependencies": {
-    "@clerk/nextjs": "^5.7.4",
+    "@clerk/nextjs": "^5.7.5",
     "@heroicons/react": "^2.2.0",
     "@hookform/resolvers": "^3.3.4",
     "@prisma/client": "5.22.0",
