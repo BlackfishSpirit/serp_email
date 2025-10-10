@@ -229,8 +229,8 @@ export default function CategoryLookupPage() {
     }
   };
 
-  const handleClose = () => {
-    window.location.href = "/auth";
+  const handleCancel = () => {
+    window.location.href = "/auth/lead-generation";
   };
 
   if (!isLoaded || !isSignedIn) {
@@ -252,20 +252,12 @@ export default function CategoryLookupPage() {
         <h2 className="text-2xl font-bold text-gray-900">
           {categoryType === 'excluded' ? 'Excluded Categories Lookup' : 'Categories Lookup'}
         </h2>
-        <div className="flex items-center space-x-4">
-          <Link
-            href="/auth"
-            className="text-brand-600 hover:text-brand-700 font-medium"
-          >
-            ← Back to Main Page
-          </Link>
-          <button
-            onClick={handleClose}
-            className="rounded-lg bg-gray-100 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-200 transition-colors"
-          >
-            Close
-          </button>
-        </div>
+        <button
+          onClick={handleCancel}
+          className="rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700 transition-colors"
+        >
+          Cancel
+        </button>
       </div>
 
       {error && (
