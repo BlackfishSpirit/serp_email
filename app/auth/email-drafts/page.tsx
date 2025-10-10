@@ -445,22 +445,8 @@ export default function EmailDraftsPage() {
       <NavBar />
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8 space-y-8">
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-gray-200 pb-4">
+        <div className="border-b border-gray-200 pb-4">
         <h2 className="text-2xl font-bold text-gray-900">Email Drafts</h2>
-        <div className="flex items-center space-x-4">
-          <Link
-            href="/auth"
-            className="text-brand-600 hover:text-brand-700 font-medium"
-          >
-            ← Back to Dashboard
-          </Link>
-          <button
-            onClick={handleLogout}
-            className="rounded-lg bg-gray-100 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-200 transition-colors"
-          >
-            Sign Out
-          </button>
-        </div>
       </div>
 
       {error && (

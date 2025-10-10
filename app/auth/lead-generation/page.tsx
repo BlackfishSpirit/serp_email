@@ -495,7 +495,7 @@ export default function SerpSettingsPage() {
       <NavBar />
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8 space-y-8">
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-gray-200 pb-6">
+        <div className="border-b border-gray-200 pb-6">
         <div className="flex items-center space-x-4">
           <h2 className="text-3xl font-bold text-gray-900">Lead Generation</h2>
           {isSaving && (
@@ -504,20 +504,6 @@ export default function SerpSettingsPage() {
               Saving...
             </div>
           )}
-        </div>
-        <div className="flex items-center space-x-4">
-          <Link
-            href="/dashboard"
-            className="text-blue-600 hover:text-blue-700 font-medium"
-          >
-            ← Back to Dashboard
-          </Link>
-          <Link
-            href="/auth/leads"
-            className="text-blue-600 hover:text-blue-700 font-medium"
-          >
-            View Leads
-          </Link>
         </div>
       </div>
 
