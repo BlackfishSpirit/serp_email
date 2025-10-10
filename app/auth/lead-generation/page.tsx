@@ -531,6 +531,16 @@ export default function SerpSettingsPage() {
           </p>
         </div>
 
+        {/* Required Search Settings Section */}
+        <div className="mb-6">
+          <h4 className="text-lg font-semibold text-gray-900">
+            Required Search Settings
+          </h4>
+          <p className="text-sm text-gray-600 mt-1">
+            Make your search keywords as specific as possible to avoid unrelated results. Use keywords specific to the industry you are trying to reach.
+          </p>
+        </div>
+
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           <div className="space-y-6">
             <div>
