@@ -568,7 +568,7 @@ export default function SerpSettingsPage() {
                   )}
                   <Link
                     href="/auth/location-lookup"
-                    className="rounded-lg bg-gray-500 px-3 py-1 text-xs text-white hover:bg-gray-600 transition-colors"
+                    className="rounded-lg bg-green-600 px-3 py-1 text-xs text-white hover:bg-green-700 transition-colors"
                   >
                     Browse
                   </Link>
@@ -627,7 +627,7 @@ export default function SerpSettingsPage() {
                   </div>
                   <Link
                     href="/auth/category-lookup?type=included"
-                    className="text-sm text-blue-600 hover:text-blue-700 font-medium"
+                    className="rounded-lg bg-green-600 px-3 py-1 text-xs text-white hover:bg-green-700 transition-colors"
                   >
                     Browse
                   </Link>
@@ -668,7 +668,7 @@ export default function SerpSettingsPage() {
                   </div>
                   <Link
                     href="/auth/category-lookup?type=excluded"
-                    className="text-sm text-blue-600 hover:text-blue-700 font-medium"
+                    className="rounded-lg bg-green-600 px-3 py-1 text-xs text-white hover:bg-green-700 transition-colors"
                   >
                     Browse
                   </Link>
