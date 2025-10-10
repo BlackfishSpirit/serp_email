@@ -523,12 +523,8 @@ export default function SerpSettingsPage() {
         </div>
       )}
 
-      <p className="text-gray-600">
-        Logged in as: <span className="font-medium text-gray-900">{user?.primaryEmailAddress?.emailAddress}</span>
-      </p>
-
       {/* Lead Search Settings */}
-      <div className="border-t border-gray-200 pt-8">
+      <div>
         <h3 className="text-2xl font-semibold text-gray-900 mb-6">
           Search Configuration
         </h3>
@@ -612,7 +608,7 @@ export default function SerpSettingsPage() {
         </div>
 
         {/* Optional Refinement Settings Section */}
-        <div className="mt-8 pt-8 border-t border-gray-300">
+        <div className="mt-8 pt-8 border-t border-gray-200">
           <div className="mb-6">
             <h4 className="text-lg font-semibold text-gray-900">
               Optional Refinement Settings
