@@ -561,16 +561,16 @@ export default function EmailDraftsPage() {
                   <th className="px-4 py-3 text-center font-semibold text-gray-900 w-12">
                     Select
                   </th>
-                  <th className="px-4 py-3 text-left font-semibold text-gray-900">
+                  <th className="px-4 py-3 text-left font-semibold text-gray-900 w-32">
                     Business
                   </th>
-                  <th className="px-4 py-3 text-left font-semibold text-gray-900">
+                  <th className="px-4 py-3 text-left font-semibold text-gray-900 w-48">
                     Subject
                   </th>
-                  <th className="px-4 py-3 text-left font-semibold text-gray-900">
+                  <th className="px-4 py-3 text-left font-semibold text-gray-900 w-96">
                     Message Preview
                   </th>
-                  <th className="px-4 py-3 text-left font-semibold text-gray-900">
+                  <th className="px-4 py-3 text-left font-semibold text-gray-900 w-32">
                     Goal
                   </th>
                 </tr>
