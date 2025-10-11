@@ -129,6 +129,7 @@ export default function DashboardPage() {
         .from('user_leads')
         .select('*', { count: 'exact', head: true })
         .eq('user_id', userData.id)
+        .is('excluded', null)
         .gte('created_at', oneWeekAgo.toISOString());
 
       // Get locations searched count (distinct location_codes in user_searches)
